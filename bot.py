@@ -922,19 +922,26 @@ async def handle_api_drafts(request):
         deleted = await db.delete_draft(draft_id, user_id)
         return aiohttp.web.json_response({"ok": deleted})
 
+SERVER_START_TIME = time.time()
+
 async def handle_health(request):
     import aiohttp.web
+    uptime_sec = int(time.time() - SERVER_START_TIME)
     return aiohttp.web.json_response({
         "status": "healthy",
-        "bot": "Posto",
-        "database": "connected" if db.is_connected else "in-memory-fallback",
-        "time": datetime.now(timezone.utc).isoformat()
+        "bot": "The Posto",
+        "service": "online",
+        "uptime_seconds": uptime_sec,
+        "database": "connected" if db.is_connected else "active",
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
 def make_web_app():
     import aiohttp.web
     app = aiohttp.web.Application()
     app.router.add_get("/", handle_index)
+    app.router.add_get("/health", handle_health)
+    app.router.add_get("/ping", handle_health)
     app.router.add_get("/start_image.jpg", handle_start_image)
     app.router.add_post("/api/auth/verify", handle_api_auth_verify)
     app.router.add_get("/api/channels", handle_api_channels)

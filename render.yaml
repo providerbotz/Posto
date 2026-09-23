@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: the-posto-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 bot.py
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: posto
+      - key: OWNER_ID
+        sync: false
+      - key: WEB_HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: BASE_URL
+        sync: false

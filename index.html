@@ -5,37 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Posto — Telegram Channel Post Maker</title>
   <meta name="description" content="Production-Ready Telegram Channel Post Maker Bot with custom typography, live formatting preview, inline buttons, reactions, and automated scheduling.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='24' fill='%23080709' stroke='%234a1824' stroke-width='4'/%3E%3Cpath d='M22 62L46 54L34 68Z' fill='%23750a19'/%3E%3Cpath d='M46 54L78 26L42 74L46 54Z' fill='%23b8142c'/%3E%3Cpath d='M78 26L22 46L46 54L78 26Z' fill='%23ff4d6d'/%3E%3Cpath d='M46 54L56 42L78 26L46 54Z' fill='%23ff859b'/%3E%3Ccircle cx='46' cy='54' r='3' fill='%23ffffff'/%3E%3C/svg%3E">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     :root {
-      --bg-primary: #0e1621;
-      --bg-secondary: #17212b;
-      --bg-card: #202b36;
-      --bg-card-hover: #263442;
-      --bg-bubble: #182533;
-      --border-color: #2b3947;
-      --border-subtle: #1e2c3a;
+      /* Dark Red & Black Theme */
+      --bg-primary: #070709;
+      --bg-secondary: #0f0d11;
+      --bg-card: #151217;
+      --bg-card-hover: #1e1921;
+      --bg-bubble: #171116;
+      --border-color: #35151d;
+      --border-subtle: #220d14;
       
-      --text-main: #f5f5f5;
-      --text-muted: #7f91a4;
-      --text-link: #6ab2f2;
+      --text-main: #f5f5f7;
+      --text-muted: #a48d94;
+      --text-link: #ff3b5c;
       
-      /* Semantic Action Colors */
-      --btn-primary: #2481cc;
-      --btn-primary-hover: #1e6fb0;
-      --btn-success: #2ea64e;
-      --btn-success-hover: #278d42;
-      --btn-warning: #e58b1a;
-      --btn-warning-hover: #c47514;
-      --btn-danger: #e53935;
-      --btn-danger-hover: #c62828;
-      --btn-secondary: #2c3a4a;
-      --btn-secondary-hover: #37485c;
+      /* Semantic Crimson & Dark Red Action Colors */
+      --btn-primary: #b8142c;
+      --btn-primary-hover: #d91c37;
+      --btn-primary-glow: rgba(217, 28, 55, 0.35);
+      --btn-success: #1f8a4c;
+      --btn-success-hover: #26a35a;
+      --btn-warning: #cc6d10;
+      --btn-warning-hover: #e57d17;
+      --btn-danger: #800e1f;
+      --btn-danger-hover: #9e1227;
+      --btn-secondary: #22181f;
+      --btn-secondary-hover: #2f1f2a;
       
-      --tg-inline-btn: #2b5278;
-      --tg-inline-btn-hover: #366594;
+      --tg-inline-btn: #26161e;
+      --tg-inline-btn-hover: #3b1d2d;
       
       --radius-sm: 6px;
       --radius-md: 10px;
@@ -80,16 +82,21 @@
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, #2481cc, #52a5e8);
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(36, 129, 204, 0.35);
+      box-shadow: 0 4px 14px rgba(184, 20, 44, 0.35);
+      flex-shrink: 0;
+      background: #0f0d11;
+    }
+
+    .brand-logo svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     .brand-title {
@@ -101,11 +108,11 @@
 
     .brand-badge {
       font-size: 0.72rem;
-      color: var(--text-link);
-      background-color: rgba(36, 129, 204, 0.15);
+      color: #ff4d6d;
+      background-color: rgba(184, 20, 44, 0.18);
       padding: 2px 8px;
       border-radius: 20px;
-      border: 1px solid rgba(36, 129, 204, 0.3);
+      border: 1px solid rgba(184, 20, 44, 0.4);
       font-weight: 600;
     }
 
@@ -138,7 +145,7 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--btn-primary), #52a5e8);
+      background: linear-gradient(135deg, var(--btn-primary), #590915);
       color: #fff;
       font-weight: 700;
       font-size: 0.78rem;
@@ -243,7 +250,7 @@
 
     select:focus, input:focus, textarea:focus {
       border-color: var(--btn-primary);
-      box-shadow: 0 0 0 2px rgba(36, 129, 204, 0.25);
+      box-shadow: 0 0 0 2px rgba(184, 20, 44, 0.3);
     }
 
     /* Channel Selection */
@@ -259,7 +266,7 @@
     /* Media Uploader */
     .upload-zone {
       border: 2px dashed var(--border-color);
-      background-color: rgba(14, 22, 33, 0.6);
+      background-color: rgba(15, 13, 17, 0.6);
       border-radius: var(--radius-md);
       padding: 24px;
       text-align: center;
@@ -270,7 +277,7 @@
 
     .upload-zone:hover, .upload-zone.dragover {
       border-color: var(--btn-primary);
-      background-color: rgba(36, 129, 204, 0.08);
+      background-color: rgba(184, 20, 44, 0.09);
     }
 
     .upload-icon {
@@ -598,10 +605,12 @@
 
     .posto-btn-primary {
       background-color: var(--btn-primary);
+      box-shadow: 0 4px 14px var(--btn-primary-glow);
       flex: 1.5;
     }
     .posto-btn-primary:hover {
       background-color: var(--btn-primary-hover);
+      box-shadow: 0 6px 18px var(--btn-primary-glow);
     }
 
     .posto-btn-success {
@@ -641,11 +650,11 @@
     }
 
     .preview-card-wrap {
-      background-color: #0e1621;
+      background-color: #0b090c;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       padding: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
     }
 
     .preview-header-bar {
@@ -667,7 +676,7 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1e6fb0, #52a5e8);
+      background: linear-gradient(135deg, #b8142c, #590915);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -890,7 +899,7 @@
       border-radius: 4px;
       font-weight: 500;
     }
-    .hist-badge-chan { background: rgba(36, 129, 204, 0.2); color: #52a5e8; border: 1px solid rgba(36, 129, 204, 0.3); }
+    .hist-badge-chan { background: rgba(184, 20, 44, 0.25); color: #ff6b84; border: 1px solid rgba(184, 20, 44, 0.4); }
     .hist-badge-pin { background: rgba(255, 179, 0, 0.2); color: #ffb300; }
     .hist-badge-del { background: rgba(229, 57, 53, 0.2); color: #e53935; }
     .hist-badge-media { background: rgba(255, 255, 255, 0.1); color: #e0e0e0; }
@@ -1019,7 +1028,27 @@
   <!-- Header Bar -->
   <header class="posto-header">
     <div class="brand-group">
-      <div class="brand-logo">✈️</div>
+      <div class="brand-logo">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="pRedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff2a4b" />
+              <stop offset="60%" stop-color="#b8142c" />
+              <stop offset="100%" stop-color="#5a0815" />
+            </linearGradient>
+            <linearGradient id="pDarkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#241419" />
+              <stop offset="100%" stop-color="#0a080a" />
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="88" height="88" rx="22" fill="url(#pDarkBg)" stroke="#4a1824" stroke-width="2.5" />
+          <path d="M22 62L46 54L34 68Z" fill="#750a19" opacity="0.9"/>
+          <path d="M46 54L78 26L42 74L46 54Z" fill="url(#pRedGrad)"/>
+          <path d="M78 26L22 46L46 54L78 26Z" fill="#ff4d6d"/>
+          <path d="M46 54L56 42L78 26L46 54Z" fill="#ff859b" opacity="0.95"/>
+          <circle cx="46" cy="54" r="2.5" fill="#ffffff" />
+        </svg>
+      </div>
       <div>
         <div class="brand-title">ᴘσѕтσ</div>
       </div>
