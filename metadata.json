@@ -1,0 +1,6 @@
+{
+  "name": "Posto - Telegram Channel Post Maker Bot",
+  "description": "Production-ready Telegram Channel Post Maker Bot with a sleek native web editor, custom typography, MongoDB persistence, watermark engine, auto-pin, and scheduled auto-delete.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

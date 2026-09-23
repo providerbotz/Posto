@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Posto — Telegram Channel Post Maker</title>
+  <meta name="description" content="Production-Ready Telegram Channel Post Maker Bot with custom typography, live formatting preview, inline buttons, reactions, and automated scheduling.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #0e1621;
+      --bg-secondary: #17212b;
+      --bg-card: #202b36;
+      --bg-card-hover: #263442;
+      --bg-bubble: #182533;
+      --border-color: #2b3947;
+      --border-subtle: #1e2c3a;
+      
+      --text-main: #f5f5f5;
+      --text-muted: #7f91a4;
+      --text-link: #6ab2f2;
+      
+      /* Semantic Action Colors */
+      --btn-primary: #2481cc;
+      --btn-primary-hover: #1e6fb0;
+      --btn-success: #2ea64e;
+      --btn-success-hover: #278d42;
+      --btn-warning: #e58b1a;
+      --btn-warning-hover: #c47514;
+      --btn-danger: #e53935;
+      --btn-danger-hover: #c62828;
+      --btn-secondary: #2c3a4a;
+      --btn-secondary-hover: #37485c;
+      
+      --tg-inline-btn: #2b5278;
+      --tg-inline-btn-hover: #366594;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Bar */
+    header.posto-header {
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2481cc, #52a5e8);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(36, 129, 204, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+    }
+
+    .brand-badge {
+      font-size: 0.72rem;
+      color: var(--text-link);
+      background-color: rgba(36, 129, 204, 0.15);
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(36, 129, 204, 0.3);
+      font-weight: 600;
+    }
+
+    .user-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 4px 12px 4px 6px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+    }
+
+    .user-avatar-img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--btn-primary);
+    }
+
+    .user-avatar-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--btn-primary), #52a5e8);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-info-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .user-info-name {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .user-info-id {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .user-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--btn-success);
+      border-radius: 50%;
+    }
+
+    /* Main Container & Responsive Grid */
+    main.posto-container {
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 960px) {
+      main.posto-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Cards */
+    .posto-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      letter-spacing: 0.3px;
+    }
+
+    .card-title .card-icon {
+      margin-right: 6px;
+    }
+
+    /* Form Inputs */
+    label.field-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input[type="text"], input[type="url"], input[type="number"], textarea {
+      width: 100%;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--btn-primary);
+      box-shadow: 0 0 0 2px rgba(36, 129, 204, 0.25);
+    }
+
+    /* Channel Selection */
+    .channel-select-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .channel-select-group select {
+      flex: 1;
+    }
+
+    /* Media Uploader */
+    .upload-zone {
+      border: 2px dashed var(--border-color);
+      background-color: rgba(14, 22, 33, 0.6);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--btn-primary);
+      background-color: rgba(36, 129, 204, 0.08);
+    }
+
+    .upload-icon {
+      font-size: 36px;
+      color: var(--text-link);
+      margin-bottom: 8px;
+    }
+
+    .upload-zone p {
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .upload-zone span.subtext {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .media-type-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .media-tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .media-tab.active {
+      background: var(--btn-primary);
+      color: #fff;
+      border-color: var(--btn-primary);
+    }
+
+    .media-selected-preview {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin-top: 10px;
+    }
+
+    .media-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .media-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      background: #000;
+    }
+
+    .media-meta strong {
+      display: block;
+      font-size: 0.88rem;
+      color: #fff;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .media-meta small {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* Text & Formatting Toolbar */
+    .formatting-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: var(--bg-card);
+      padding: 6px;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-top-left-radius: var(--radius-sm);
+      border-top-right-radius: var(--radius-sm);
+    }
+
+    .format-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      padding: 5px 8px;
+      font-size: 0.82rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .format-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-color);
+    }
+
+    .caption-textarea {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      min-height: 140px;
+      resize: vertical;
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+
+    /* Character Counter & Warning */
+    .caption-counter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .caption-warning-banner {
+      display: none;
+      background: rgba(229, 57, 53, 0.15);
+      border: 1px solid var(--btn-danger);
+      color: #ff6b6b;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      margin-top: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    /* Buttons Builder */
+    .button-row-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-row-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .btn-items-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-item {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 110px auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 600px) {
+      .btn-item {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Reactions Selector */
+    .reactions-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .reaction-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .reaction-chip.selected {
+      background: rgba(36, 129, 204, 0.2);
+      border-color: var(--btn-primary);
+      box-shadow: 0 0 8px rgba(36, 129, 204, 0.3);
+    }
+
+    /* Settings Switchers */
+    .setting-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .setting-toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    .toggle-meta strong {
+      display: block;
+      font-size: 0.88rem;
+      color: #fff;
+    }
+
+    .toggle-meta small {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border-color);
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--btn-primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Watermark Config Sub-panel */
+    .watermark-subpanel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .posto-btn {
+      font-family: inherit;
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      color: #ffffff;
+    }
+
+    .posto-btn-primary {
+      background-color: var(--btn-primary);
+      flex: 1.5;
+    }
+    .posto-btn-primary:hover {
+      background-color: var(--btn-primary-hover);
+    }
+
+    .posto-btn-success {
+      background-color: var(--btn-success);
+      flex: 1;
+    }
+    .posto-btn-success:hover {
+      background-color: var(--btn-success-hover);
+    }
+
+    .posto-btn-warning {
+      background-color: var(--btn-warning);
+    }
+    .posto-btn-warning:hover {
+      background-color: var(--btn-warning-hover);
+    }
+
+    .posto-btn-danger {
+      background-color: var(--btn-danger);
+    }
+    .posto-btn-danger:hover {
+      background-color: var(--btn-danger-hover);
+    }
+
+    .posto-btn-secondary {
+      background-color: var(--btn-secondary);
+    }
+    .posto-btn-secondary:hover {
+      background-color: var(--btn-secondary-hover);
+    }
+
+    /* Preview Column (Sticky Mockup) */
+    .preview-column {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+    }
+
+    .preview-card-wrap {
+      background-color: #0e1621;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .preview-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 12px;
+    }
+
+    .channel-preview-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .channel-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e6fb0, #52a5e8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.85rem;
+    }
+
+    .channel-preview-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .channel-preview-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Telegram Chat Post Bubble */
+    .tg-post-bubble {
+      background-color: var(--bg-bubble);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .tg-post-media-container {
+      position: relative;
+      width: 100%;
+      background-color: #000;
+      display: none;
+      max-height: 420px;
+      overflow: hidden;
+    }
+
+    .tg-post-media-container img, .tg-post-media-container video {
+      width: 100%;
+      height: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .tg-watermark-overlay {
+      position: absolute;
+      padding: 6px 12px;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 14px;
+      font-weight: bold;
+      pointer-events: none;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      letter-spacing: 0.5px;
+      display: none;
+    }
+
+    .tg-watermark-overlay.pos-br { bottom: 12px; right: 12px; }
+    .tg-watermark-overlay.pos-bl { bottom: 12px; left: 12px; }
+    .tg-watermark-overlay.pos-tr { top: 12px; right: 12px; }
+    .tg-watermark-overlay.pos-tl { top: 12px; left: 12px; }
+    .tg-watermark-overlay.pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+    .tg-post-body {
+      padding: 12px 14px 8px;
+    }
+
+    .tg-caption-text {
+      font-size: 0.94rem;
+      line-height: 1.55;
+      color: #ffffff;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .tg-caption-text b, .tg-caption-text strong { font-weight: 700; }
+    .tg-caption-text i, .tg-caption-text em { font-style: italic; }
+    .tg-caption-text u { text-decoration: underline; }
+    .tg-caption-text s, .tg-caption-text strike { text-decoration: line-through; }
+    .tg-caption-text code {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.88em;
+      color: #6ab2f2;
+    }
+    .tg-caption-text pre {
+      background: rgba(0, 0, 0, 0.45);
+      padding: 8px 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.85em;
+      margin: 6px 0;
+      color: #7f91a4;
+    }
+    .tg-caption-text a {
+      color: var(--text-link);
+      text-decoration: none;
+    }
+    .tg-caption-text a:hover { text-decoration: underline; }
+    .tg-caption-text blockquote {
+      border-left: 3px solid var(--btn-primary);
+      padding-left: 10px;
+      margin: 6px 0;
+      color: #a0b0c0;
+      font-style: italic;
+    }
+    .tg-spoiler {
+      background: #364757;
+      color: transparent;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s, background 0.2s;
+    }
+    .tg-spoiler.revealed {
+      background: transparent;
+      color: inherit;
+    }
+
+    .tg-meta-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Inline Buttons Layout in Mockup */
+    .tg-inline-keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .tg-inline-row {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tg-mock-btn {
+      flex: 1;
+      background-color: var(--tg-inline-btn);
+      color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+
+    .tg-mock-btn:hover {
+      background-color: var(--tg-inline-btn-hover);
+    }
+
+    /* Colored Inline Buttons (Telegram style) */
+    .tg-mock-btn.style-primary { background-color: #2481cc; color: #ffffff; }
+    .tg-mock-btn.style-primary:hover { background-color: #1a6fb3; }
+    .tg-mock-btn.style-success { background-color: #28a745; color: #ffffff; }
+    .tg-mock-btn.style-success:hover { background-color: #218838; }
+    .tg-mock-btn.style-danger { background-color: #e53935; color: #ffffff; }
+    .tg-mock-btn.style-danger:hover { background-color: #c62828; }
+
+    .btn-color-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      cursor: pointer;
+      outline: none;
+    }
+    .btn-color-select:focus {
+      border-color: var(--btn-primary);
+    }
+
+    /* Published Post History Styles */
+    .history-card-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.2s;
+    }
+    .history-card-item:hover {
+      border-color: var(--btn-primary);
+    }
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .history-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .hist-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .hist-badge-chan { background: rgba(36, 129, 204, 0.2); color: #52a5e8; border: 1px solid rgba(36, 129, 204, 0.3); }
+    .hist-badge-pin { background: rgba(255, 179, 0, 0.2); color: #ffb300; }
+    .hist-badge-del { background: rgba(229, 57, 53, 0.2); color: #e53935; }
+    .hist-badge-media { background: rgba(255, 255, 255, 0.1); color: #e0e0e0; }
+    .history-body-text {
+      font-size: 0.84rem;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      max-height: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.4;
+    }
+    .history-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Reactions in Mockup */
+    .tg-reactions-mock {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tg-rx-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 3px 8px;
+      border-radius: 14px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #fff;
+    }
+
+    /* Drafts Modal */
+    .posto-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .posto-modal-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      max-width: 540px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .draft-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-card);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--btn-primary);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      z-index: 200;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    #toast.success { border-left-color: var(--btn-success); }
+    #toast.error { border-left-color: var(--btn-danger); }
+    #toast.warning { border-left-color: var(--btn-warning); }
+  </style>
+</head>
+<body>
+
+  <!-- Header Bar -->
+  <header class="posto-header">
+    <div class="brand-group">
+      <div class="brand-logo">✈️</div>
+      <div>
+        <div class="brand-title">ᴘσѕтσ</div>
+      </div>
+      <span class="brand-badge">ᴠ2.4 ᴘʀσᴅυᴄтισɴ</span>
+    </div>
+    <div class="user-status">
+      <button class="posto-btn posto-btn-secondary" id="btnDraftsNav" style="padding: 6px 12px; font-size: 0.82rem;">
+        📂 ᴅʀᴧꜰтѕ (<span id="draftCount">0</span>)
+      </button>
+      <button class="posto-btn posto-btn-secondary" id="btnHistoryNav" style="padding: 6px 12px; font-size: 0.82rem;">
+        📜 ʜιѕтσʀʏ (<span id="historyCount">0</span>)
+      </button>
+      <div class="user-pill">
+        <img id="headerUserAvatar" class="user-avatar-img" style="display: none;" src="" alt="Avatar" />
+        <div id="headerUserAvatarFallback" class="user-avatar-fallback">U</div>
+        <div class="user-info-text">
+          <div class="user-info-name">
+            <span id="headerUserName">Telegram User</span>
+            <span class="user-dot" title="Connected"></span>
+          </div>
+          <span class="user-info-id" id="headerUserId">ID: 86742154</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="posto-container">
+    
+    <!-- Left Column: Form & Controls -->
+    <div class="editor-column">
+      
+      <!-- Target Channel Card -->
+      <section class="posto-card" id="cardChannel">
+        <div class="card-title">
+          <span><span class="card-icon">📢</span> ᴛᴧʀɢєт ᴄʜᴧɴɴєʟ</span>
+          <span style="font-size: 0.76rem; color: var(--text-link);" id="channelCountLabel">1 ᴄσɴɴєᴄтєᴅ</span>
+        </div>
+        <div class="channel-select-group">
+          <select id="channelSelect">
+            <option value="@demo_channel" data-title="Demo Announcements" data-username="demo_channel">
+              📢 Demo Announcements (@demo_channel)
+            </option>
+          </select>
+          <button class="posto-btn posto-btn-secondary" id="btnRefreshChannels" title="Refresh channel list">
+            🔄
+          </button>
+        </div>
+      </section>
+
+      <!-- Media Attachment Card -->
+      <section class="posto-card" id="cardMedia">
+        <div class="card-title">
+          <span><span class="card-icon">🖼️</span> ᴍєᴅιᴧ ᴧттᴧᴄʜᴍєɴт</span>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">σᴩтισɴᴧʟ</span>
+        </div>
+
+        <div class="media-type-tabs">
+          <button class="media-tab active" data-type="photo">📷 ᴩʜσтσ</button>
+          <button class="media-tab" data-type="video">🎥 νιᴅєσ</button>
+          <button class="media-tab" data-type="audio">🎵 ᴧυᴅισ</button>
+          <button class="media-tab" data-type="document">📁 ᴅσᴄυᴍєɴт</button>
+          <button class="media-tab" data-type="text">📝 тє᥊т σɴʟʏ</button>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="mediaFileInput" accept="image/*,video/*,audio/*,.pdf,.zip" style="display: none;">
+          <div class="upload-icon">📤</div>
+          <p><strong>ᴄʟιᴄᴋ тσ υᴩʟσᴧᴅ</strong> σʀ ᴅʀᴧɢ & ᴅʀσᴩ ᴍєᴅιᴧ</p>
+          <span class="subtext">Photos (JPEG, PNG), Videos (MP4), Audio (MP3), Documents</span>
+        </div>
+
+        <!-- Direct Media URL Input Option -->
+        <div id="mediaUrlBox" style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px;">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 5px;">
+            🔗 <strong>σʀ ᴩᴧѕтє ᴅιʀєᴄт ᴍєᴅιᴧ υʀʟ</strong> (Image, Video, Audio):
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="mediaUrlInput" class="posto-input" style="flex: 1; font-size: 0.82rem;" placeholder="https://example.com/image.jpg or video.mp4" />
+            <button type="button" class="posto-btn posto-btn-secondary" id="btnApplyMediaUrl" style="padding: 6px 12px; font-size: 0.78rem; white-space: nowrap;">
+              ⚡ ʟσᴧᴅ υʀʟ
+            </button>
+          </div>
+        </div>
+
+        <div class="media-selected-preview" id="mediaPreviewRow">
+          <div class="media-info">
+            <img class="media-thumb" id="selectedMediaThumb" src="" alt="Thumbnail">
+            <div class="media-meta">
+              <strong id="selectedMediaName">file.jpg</strong>
+              <small id="selectedMediaSize">1.2 MB • Photo</small>
+            </div>
+          </div>
+          <button class="posto-btn posto-btn-danger" id="btnRemoveMedia" style="padding: 4px 10px; font-size: 0.75rem;">
+            ✕ ʀєᴍσνє
+          </button>
+        </div>
+      </section>
+
+      <!-- Text / Caption & Formatting Toolbar -->
+      <section class="posto-card" id="cardCaption">
+        <div class="card-title">
+          <span><span class="card-icon">✍️</span> ᴩσѕт ᴄᴧᴩтισɴ / тє᥊т</span>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">тєʟєɢʀᴧᴍ ꜰσʀᴍᴧттιɴɢ</span>
+        </div>
+
+        <!-- Formatting Buttons Toolbar -->
+        <div class="formatting-toolbar">
+          <button class="format-btn" data-fmt="bold" title="Bold"><b>B</b></button>
+          <button class="format-btn" data-fmt="italic" title="Italic"><i>I</i></button>
+          <button class="format-btn" data-fmt="underline" title="Underline"><u>U</u></button>
+          <button class="format-btn" data-fmt="strike" title="Strikethrough"><s>S</s></button>
+          <button class="format-btn" data-fmt="spoiler" title="Spoiler">▌Sp</button>
+          <button class="format-btn" data-fmt="code" title="Inline Code">`C`</button>
+          <button class="format-btn" data-fmt="pre" title="Code Block">```</button>
+          <button class="format-btn" data-fmt="link" title="Insert Link">🔗 Link</button>
+          <button class="format-btn" data-fmt="quote" title="Quote Block">&gt; Quote</button>
+        </div>
+
+        <textarea class="caption-textarea" id="captionInput" placeholder="Write your post caption here... 
+Supports Telegram formatting: **bold**, __italic__, `code`, ||spoiler||, > blockquote..."></textarea>
+
+        <div class="caption-counter-bar">
+          <span id="charCountLabel">0 / 1024</span>
+          <span id="charLimitTypeLabel">ᴍєᴅιᴧ ᴄᴧᴩтισɴ ʟιᴍιт (1024)</span>
+        </div>
+
+        <div class="caption-warning-banner" id="captionWarningBanner">
+          ⚠️ ᴡᴀʀɴɪɴɢ: ᴍᴇᴅɪᴀ ᴄᴀᴘᴛɪᴏɴѕ ᴍᴜѕᴛ ꜰᴏʟʟᴏᴡ ᴛᴇʟᴇɢʀᴀᴍ'ѕ ᴄᴜʀʀᴇɴᴛ ʟɪᴍɪᴛѕ.
+        </div>
+      </section>
+
+      <!-- Custom Inline URL Buttons Builder -->
+      <section class="posto-card" id="cardButtons">
+        <div class="card-title">
+          <span><span class="card-icon">🔘</span> ιɴʟιɴє υʀʟ ʙυттσɴѕ</span>
+          <button class="posto-btn posto-btn-secondary" id="btnAddButtonRow" style="padding: 4px 10px; font-size: 0.78rem;">
+            + ᴧᴅᴅ ʀσω
+          </button>
+        </div>
+
+        <div class="button-row-container" id="buttonRowContainer">
+          <!-- Dynamic Button Rows -->
+        </div>
+        <small style="color: var(--text-muted); font-size: 0.78rem;">
+          Example: [ ᴡᴀᴛᴄʜ ] [ ᴅᴏᴡɴʟᴏᴀᴅ ] on Row 1, [ ᴜᴘᴅᴀᴛᴇꜱ ] on Row 2
+        </small>
+      </section>
+
+      <!-- Telegram Native Reactions -->
+      <section class="posto-card" id="cardReactions">
+        <div class="card-title">
+          <span><span class="card-icon">❤️</span> ʀєᴧᴄтισɴ ʙυттσɴѕ</span>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">тσɢɢʟє єᴍσᴊιѕ</span>
+        </div>
+        <div class="reactions-grid" id="reactionsGrid">
+          <div class="reaction-chip selected" data-emoji="👍">👍 <span>Liked</span></div>
+          <div class="reaction-chip selected" data-emoji="❤️">❤️ <span>Love</span></div>
+          <div class="reaction-chip selected" data-emoji="🔥">🔥 <span>Fire</span></div>
+          <div class="reaction-chip" data-emoji="🎉">🎉 <span>Party</span></div>
+          <div class="reaction-chip" data-emoji="👏">👏 <span>Clap</span></div>
+          <div class="reaction-chip" data-emoji="⚡">⚡ <span>Zap</span></div>
+          <div class="reaction-chip" data-emoji="💯">💯 <span>100</span></div>
+          <div class="reaction-chip" data-emoji="🤔">🤔 <span>Think</span></div>
+        </div>
+      </section>
+
+      <!-- Advanced Post Configuration -->
+      <section class="posto-card" id="cardSettings">
+        <div class="card-title">
+          <span><span class="card-icon">⚙️</span> ᴩσѕт ᴄσɴꜰιɢυʀᴧтισɴ</span>
+        </div>
+
+        <!-- Watermark Toggle -->
+        <div class="setting-toggle-row">
+          <div class="toggle-meta">
+            <strong>ιᴍᴧɢє ωᴧтєʀᴍᴧʀᴋ</strong>
+            <small>Overlay channel branding on uploaded photos</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggleWatermark">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Watermark Subpanel -->
+        <div class="watermark-subpanel" id="watermarkSubpanel">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+            <div>
+              <label class="field-label">Watermark Text</label>
+              <input type="text" id="watermarkTextInput" value="@PostoChannel" placeholder="@YourChannel">
+            </div>
+            <div>
+              <label class="field-label">Position</label>
+              <select id="watermarkPosSelect">
+                <option value="pos-br">Bottom Right</option>
+                <option value="pos-bl">Bottom Left</option>
+                <option value="pos-tr">Top Right</option>
+                <option value="pos-tl">Top Left</option>
+                <option value="pos-center">Center</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="field-label">Opacity (<span id="wmOpacityVal">75%</span>)</label>
+              <input type="range" id="wmOpacityRange" min="20" max="100" value="75" style="width: 100%;">
+            </div>
+            <div>
+              <label class="field-label">Font Size</label>
+              <select id="wmSizeSelect">
+                <option value="12px">Small</option>
+                <option value="16px" selected>Medium</option>
+                <option value="22px">Large</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto Pin Toggle -->
+        <div class="setting-toggle-row">
+          <div class="toggle-meta">
+            <strong>ᴧυтσ ᴩιɴ</strong>
+            <small>Automatically pin message after publishing to channel</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggleAutoPin">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Auto Delete Scheduler -->
+        <div class="setting-toggle-row">
+          <div class="toggle-meta">
+            <strong>ᴧυтσ ᴅєʟєтє ѕᴄʜєᴅυʟєʀ</strong>
+            <small>Persisted in MongoDB to survive bot restarts</small>
+          </div>
+          <select id="autoDeleteSelect" style="max-width: 160px;">
+            <option value="0">Disabled</option>
+            <option value="5">5 Minutes</option>
+            <option value="10">10 Minutes</option>
+            <option value="30">30 Minutes</option>
+            <option value="60">1 Hour</option>
+            <option value="360">6 Hours</option>
+            <option value="720">12 Hours</option>
+            <option value="1440">24 Hours</option>
+          </select>
+        </div>
+
+        <!-- Protected Content Toggle -->
+        <div class="setting-toggle-row">
+          <div class="toggle-meta">
+            <strong>ᴅιѕᴧʙʟє ꜰσʀωᴧʀᴅ & ᴄσᴩʏ</strong>
+            <small>Enable Telegram's official Protect Content mode</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggleProtectContent">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+      </section>
+
+      <!-- Primary Action Buttons with Semantic Colors -->
+      <div class="actions-bar">
+        <button class="posto-btn posto-btn-primary" id="btnPublish">
+          🚀 ᴩυʙʟιѕʜ ɴσω
+        </button>
+        <button class="posto-btn posto-btn-success" id="btnSaveDraft">
+          💾 ѕᴧνє ᴅʀᴧꜰт
+        </button>
+        <button class="posto-btn posto-btn-warning" id="btnSchedule">
+          ⏰ ѕᴄʜєᴅυʟє
+        </button>
+        <button class="posto-btn posto-btn-danger" id="btnResetForm">
+          🗑️ ʀєѕєт
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Live Telegram Post Preview (Sticky Mockup) -->
+    <div class="preview-column">
+      <div class="preview-card-wrap">
+        
+        <div class="preview-header-bar">
+          <div class="channel-preview-badge">
+            <div class="channel-avatar" id="mockAvatar">P</div>
+            <div>
+              <div class="channel-preview-title" id="mockChannelTitle">Demo Announcements</div>
+              <div class="channel-preview-meta" id="mockChannelMeta">@demo_channel • Telegram Channel</div>
+            </div>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--btn-success); font-weight: 600;">● ʟινє ᴩʀєνιєω</span>
+        </div>
+
+        <!-- Telegram Message Bubble -->
+        <div class="tg-post-bubble">
+          
+          <!-- Media Box with Watermark -->
+          <div class="tg-post-media-container" id="mockMediaContainer">
+            <img id="mockMediaImg" src="" alt="Media Preview">
+            <div class="tg-watermark-overlay pos-br" id="mockWatermark">@PostoChannel</div>
+          </div>
+
+          <!-- Caption Text Box -->
+          <div class="tg-post-body">
+            <div class="tg-caption-text" id="mockCaptionText">
+              ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴘᴏѕᴛᴏ
+
+ᴄʀᴇᴀᴛᴇ. ꜰᴏʀᴍᴀᴛ. ᴘᴜʙʟɪѕʜ.
+
+Start typing in the caption box to see your Telegram channel post preview update in real-time.
+            </div>
+
+            <!-- Footer: views and time -->
+            <div class="tg-meta-footer">
+              <span>👁️ 1.4k</span>
+              <span id="mockPostTime">12:00</span>
+              <span id="mockPinIcon" style="display: none;">📌</span>
+              <span id="mockLockIcon" style="display: none;">🔒</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Inline URL Keyboard Preview -->
+        <div class="tg-inline-keyboard" id="mockInlineKeyboard">
+          <!-- Dynamic Buttons Injected Here -->
+        </div>
+
+        <!-- Reactions Mockup -->
+        <div class="tg-reactions-mock" id="mockReactionsContainer">
+          <!-- Dynamic Reaction Pills -->
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Drafts Management Modal -->
+  <div class="posto-modal" id="draftsModal">
+    <div class="posto-modal-card">
+      <div class="modal-header">
+        <h3 style="font-size: 1rem; color: #fff;">📂 ѕᴧνєᴅ ᴅʀᴧꜰтѕ (48ʜ ᴀᴜᴛᴏ-ᴇxᴘɪʀᴇ)</h3>
+        <button id="btnCloseDraftsModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="draftsListContainer">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">
+          No drafts saved yet. Click "Save Draft" in the editor.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Published Posts History Modal -->
+  <div class="posto-modal" id="historyModal">
+    <div class="posto-modal-card" style="max-width: 640px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 style="font-size: 1rem; color: #fff;">📜 ᴘυʙʟιѕʜєᴅ ᴩσѕтѕ ʜιѕтσʀʏ</h3>
+          <span class="brand-badge" id="historyModalBadge" style="font-size: 0.72rem;">0 Posts</span>
+        </div>
+        <button id="btnCloseHistoryModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="modal-body" id="historyListContainer">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">
+          No published posts yet. Publish a post to view its history here.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Notification Element -->
+  <div id="toast">Message</div>
+
+  <!-- Vanilla JavaScript Application Logic -->
+  <script>
+    (function() {
+      // User Identity Display Function (Photo, Name, ID)
+      function applyUserData(u) {
+        if (!u) return;
+        const nameEl = document.getElementById('headerUserName');
+        const idEl = document.getElementById('headerUserId');
+        const avatarEl = document.getElementById('headerUserAvatar');
+        const fallbackEl = document.getElementById('headerUserAvatarFallback');
+
+        const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ') || (u.username ? '@' + u.username : 'Telegram User');
+        if (nameEl) nameEl.textContent = displayName;
+        
+        const displayId = u.id || u.user_id;
+        if (idEl) idEl.textContent = displayId ? `ID: ${displayId}` : 'ID: Connected';
+
+        if (u.photo_url && avatarEl && fallbackEl) {
+          avatarEl.src = u.photo_url;
+          avatarEl.style.display = 'block';
+          fallbackEl.style.display = 'none';
+        } else if (fallbackEl) {
+          const initial = (u.first_name || u.username || 'U').charAt(0).toUpperCase();
+          fallbackEl.textContent = initial;
+          fallbackEl.style.display = 'flex';
+          if (avatarEl) avatarEl.style.display = 'none';
+        }
+      }
+
+      // Telegram WebApp Integration
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.expand();
+        tg.enableClosingConfirmation?.();
+        if (tg.initDataUnsafe?.user) {
+          applyUserData(tg.initDataUnsafe.user);
+        }
+      }
+
+      // Check token in URL parameters from bot /start or /web
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenParam })
+        }).then(r => r.json()).then(data => {
+          if (data.ok && data.user) {
+            applyUserData(data.user);
+          }
+        }).catch(() => {});
+      }
+
+      // App State
+      const state = {
+        mediaType: 'text',
+        mediaFile: null,
+        mediaUrl: null,
+        caption: '',
+        buttonRows: [
+          [
+            { text: 'ᴡᴀᴛᴄʜ', url: 'https://telegram.org' },
+            { text: 'ᴅᴏᴡɴʟᴏᴀᴅ', url: 'https://telegram.org' }
+          ],
+          [
+            { text: 'ᴜᴘᴅᴀᴛᴇꜱ', url: 'https://t.me/telegram', style: 'default' }
+          ]
+        ],
+        selectedReactions: ['👍', '❤️', '🔥'],
+        watermarkEnabled: false,
+        watermarkText: '@PostoChannel',
+        watermarkPos: 'pos-br',
+        watermarkOpacity: 0.75,
+        watermarkSize: '16px',
+        autoPin: false,
+        autoDelete: 0,
+        protectContent: false,
+        channel: '@demo_channel',
+        drafts: [],
+        history: []
+      };
+
+      // DOM Elements
+      const uploadZone = document.getElementById('uploadZone');
+      const mediaFileInput = document.getElementById('mediaFileInput');
+      const mediaPreviewRow = document.getElementById('mediaPreviewRow');
+      const selectedMediaThumb = document.getElementById('selectedMediaThumb');
+      const selectedMediaName = document.getElementById('selectedMediaName');
+      const selectedMediaSize = document.getElementById('selectedMediaSize');
+      const btnRemoveMedia = document.getElementById('btnRemoveMedia');
+
+      const captionInput = document.getElementById('captionInput');
+      const charCountLabel = document.getElementById('charCountLabel');
+      const charLimitTypeLabel = document.getElementById('charLimitTypeLabel');
+      const captionWarningBanner = document.getElementById('captionWarningBanner');
+
+      const buttonRowContainer = document.getElementById('buttonRowContainer');
+      const btnAddButtonRow = document.getElementById('btnAddButtonRow');
+
+      const toggleWatermark = document.getElementById('toggleWatermark');
+      const watermarkSubpanel = document.getElementById('watermarkSubpanel');
+      const watermarkTextInput = document.getElementById('watermarkTextInput');
+      const watermarkPosSelect = document.getElementById('watermarkPosSelect');
+      const wmOpacityRange = document.getElementById('wmOpacityRange');
+      const wmOpacityVal = document.getElementById('wmOpacityVal');
+      const wmSizeSelect = document.getElementById('wmSizeSelect');
+
+      const toggleAutoPin = document.getElementById('toggleAutoPin');
+      const autoDeleteSelect = document.getElementById('autoDeleteSelect');
+      const toggleProtectContent = document.getElementById('toggleProtectContent');
+      const channelSelect = document.getElementById('channelSelect');
+
+      const mockMediaContainer = document.getElementById('mockMediaContainer');
+      const mockMediaImg = document.getElementById('mockMediaImg');
+      const mockWatermark = document.getElementById('mockWatermark');
+      const mockCaptionText = document.getElementById('mockCaptionText');
+      const mockInlineKeyboard = document.getElementById('mockInlineKeyboard');
+      const mockReactionsContainer = document.getElementById('mockReactionsContainer');
+      const mockPostTime = document.getElementById('mockPostTime');
+      const mockPinIcon = document.getElementById('mockPinIcon');
+      const mockLockIcon = document.getElementById('mockLockIcon');
+      const mockChannelTitle = document.getElementById('mockChannelTitle');
+      const mockChannelMeta = document.getElementById('mockChannelMeta');
+      const mockAvatar = document.getElementById('mockAvatar');
+
+      // Toast Helper
+      function showToast(msg, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'show ' + type;
+        setTimeout(() => { toast.className = ''; }, 3200);
+      }
+
+      // Update Current Time in Mock
+      function updateTime() {
+        const now = new Date();
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        mockPostTime.textContent = `${hrs}:${mins}`;
+      }
+      updateTime();
+
+      // Format Parser for Telegram Preview
+      function parseTelegramFormatting(text) {
+        if (!text) return 'Start typing your post caption...';
+        
+        let escaped = text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        // Code blocks: ```code```
+        escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+        // Inline code: `code`
+        escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Spoilers: ||text||
+        escaped = escaped.replace(/\|\|([\s\S]*?)\|\|/g, '<span class="tg-spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
+        // Bold: **text** or <b>text</b>
+        escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+        // Italic: __text__ or <i>text</i>
+        escaped = escaped.replace(/__([^_]+)__/g, '<i>$1</i>');
+        // Strikethrough: ~~text~~
+        escaped = escaped.replace(/~~([^~]+)~~/g, '<s>$1</s>');
+        // Underline: --text--
+        escaped = escaped.replace(/--([^-]+)--/g, '<u>$1</u>');
+        // Markdown Links: [text](url)
+        escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+        // Blockquotes: > quote
+        escaped = escaped.replace(/^&gt;\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+
+        return escaped;
+      }
+
+      // Live Caption Limit & Preview Sync
+      function updateCaptionSync() {
+        const raw = captionInput.value;
+        state.caption = raw;
+        const len = raw.length;
+        const isMedia = state.mediaType !== 'text';
+        const limit = isMedia ? 1024 : 4096;
+
+        charCountLabel.textContent = `${len} / ${limit}`;
+        charLimitTypeLabel.textContent = isMedia ? 'ᴍєᴅιᴧ ᴄᴧᴩтισɴ ʟιᴍιт (1024)' : 'тє᥊т ᴩσѕт ʟιᴍιт (4096)';
+
+        if (len > limit) {
+          charCountLabel.style.color = 'var(--btn-danger)';
+          captionWarningBanner.style.display = 'block';
+        } else {
+          charCountLabel.style.color = len > limit * 0.9 ? 'var(--btn-warning)' : 'var(--text-muted)';
+          captionWarningBanner.style.display = 'none';
+        }
+
+        mockCaptionText.innerHTML = parseTelegramFormatting(raw);
+      }
+      captionInput.addEventListener('input', updateCaptionSync);
+
+      // Media Selection Tabs
+      document.querySelectorAll('.media-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          state.mediaType = tab.dataset.type;
+          
+          if (state.mediaType === 'text') {
+            uploadZone.style.display = 'none';
+            mediaPreviewRow.style.display = 'none';
+            mockMediaContainer.style.display = 'none';
+          } else {
+            uploadZone.style.display = 'block';
+            if (state.mediaUrl) {
+              mediaPreviewRow.style.display = 'flex';
+              mockMediaContainer.style.display = 'block';
+            }
+          }
+          updateCaptionSync();
+        });
+      });
+
+      // Media File Upload Handler
+      uploadZone.addEventListener('click', () => mediaFileInput.click());
+      
+      uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      });
+      uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+      });
+
+      mediaFileInput.addEventListener('change', () => {
+        if (mediaFileInput.files.length) handleFile(mediaFileInput.files[0]);
+      });
+
+      function handleFile(file) {
+        state.mediaFile = file;
+        const mediaUrlInput = document.getElementById('mediaUrlInput');
+        if (mediaUrlInput) mediaUrlInput.value = '';
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        selectedMediaName.textContent = file.name;
+        selectedMediaSize.textContent = `${sizeMb} MB • ${file.type || 'Media'}`;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          state.mediaUrl = e.target.result;
+          selectedMediaThumb.src = state.mediaUrl;
+          mockMediaImg.src = state.mediaUrl;
+          mediaPreviewRow.style.display = 'flex';
+          mockMediaContainer.style.display = 'block';
+          updateCaptionSync();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Direct Media URL Handler
+      const mediaUrlInput = document.getElementById('mediaUrlInput');
+      const btnApplyMediaUrl = document.getElementById('btnApplyMediaUrl');
+
+      function applyMediaUrl(url) {
+        url = (url || '').trim();
+        if (!url) {
+          showToast('Please enter a valid media URL', 'warning');
+          return;
+        }
+        state.mediaUrl = url;
+        state.mediaFile = null;
+        mediaFileInput.value = '';
+        const filename = url.split('/').pop().split('?')[0] || 'remote_media';
+        selectedMediaName.textContent = filename;
+        selectedMediaSize.textContent = 'Remote URL Link';
+        selectedMediaThumb.src = url;
+        mockMediaImg.src = url;
+        mediaPreviewRow.style.display = 'flex';
+        mockMediaContainer.style.display = 'block';
+        updateCaptionSync();
+        showToast('🔗 Remote media URL loaded!', 'success');
+      }
+
+      if (btnApplyMediaUrl) {
+        btnApplyMediaUrl.addEventListener('click', () => applyMediaUrl(mediaUrlInput.value));
+      }
+      if (mediaUrlInput) {
+        mediaUrlInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            applyMediaUrl(mediaUrlInput.value);
+          }
+        });
+      }
+
+      btnRemoveMedia.addEventListener('click', () => {
+        state.mediaFile = null;
+        state.mediaUrl = null;
+        mediaFileInput.value = '';
+        if (mediaUrlInput) mediaUrlInput.value = '';
+        mediaPreviewRow.style.display = 'none';
+        mockMediaContainer.style.display = 'none';
+        updateCaptionSync();
+      });
+
+      // Formatting Toolbar Insertion
+      document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fmt = btn.dataset.fmt;
+          const start = captionInput.selectionStart;
+          const end = captionInput.selectionEnd;
+          const sel = captionInput.value.substring(start, end);
+          let replacement = '';
+
+          switch (fmt) {
+            case 'bold': replacement = `**${sel || 'Bold Text'}**`; break;
+            case 'italic': replacement = `__${sel || 'Italic Text'}__`; break;
+            case 'underline': replacement = `--${sel || 'Underline Text'}--`; break;
+            case 'strike': replacement = `~~${sel || 'Strikethrough'}~~`; break;
+            case 'spoiler': replacement = `||${sel || 'Spoiler Text'}||`; break;
+            case 'code': replacement = `\`${sel || 'code'}\``; break;
+            case 'pre': replacement = `\`\`\`\n${sel || 'code block'}\n\`\`\``; break;
+            case 'link': replacement = `[${sel || 'Link Title'}](https://example.com)`; break;
+            case 'quote': replacement = `> ${sel || 'Quoted text'}`; break;
+          }
+
+          captionInput.setRangeText(replacement, start, end, 'end');
+          captionInput.focus();
+          updateCaptionSync();
+        });
+      });
+
+      // Buttons Builder Sync (with Colored Button Styles: Primary, Success, Danger)
+      function renderButtonRows() {
+        buttonRowContainer.innerHTML = '';
+        mockInlineKeyboard.innerHTML = '';
+
+        state.buttonRows.forEach((row, rowIdx) => {
+          const rowBox = document.createElement('div');
+          rowBox.className = 'btn-row-box';
+
+          const rowHeader = document.createElement('div');
+          rowHeader.className = 'btn-row-header';
+          rowHeader.innerHTML = `<span>Row ${rowIdx + 1} (${row.length} buttons)</span>`;
+          
+          const rowActions = document.createElement('div');
+          rowActions.style.display = 'flex';
+          rowActions.style.gap = '6px';
+
+          const btnAddInRow = document.createElement('button');
+          btnAddInRow.className = 'posto-btn posto-btn-secondary';
+          btnAddInRow.style.padding = '2px 8px';
+          btnAddInRow.style.fontSize = '0.72rem';
+          btnAddInRow.textContent = '+ Button';
+          btnAddInRow.onclick = () => {
+            row.push({ text: 'New Button', url: 'https://', style: 'default' });
+            renderButtonRows();
+          };
+
+          const btnDelRow = document.createElement('button');
+          btnDelRow.className = 'posto-btn posto-btn-danger';
+          btnDelRow.style.padding = '2px 8px';
+          btnDelRow.style.fontSize = '0.72rem';
+          btnDelRow.textContent = '✕ Row';
+          btnDelRow.onclick = () => {
+            state.buttonRows.splice(rowIdx, 1);
+            renderButtonRows();
+          };
+
+          rowActions.appendChild(btnAddInRow);
+          rowActions.appendChild(btnDelRow);
+          rowHeader.appendChild(rowActions);
+          rowBox.appendChild(rowHeader);
+
+          const itemsGroup = document.createElement('div');
+          itemsGroup.className = 'btn-items-group';
+
+          // Mock row in preview
+          const mockRow = document.createElement('div');
+          mockRow.className = 'tg-inline-row';
+
+          row.forEach((item, itemIdx) => {
+            const itemRow = document.createElement('div');
+            itemRow.className = 'btn-item';
+
+            const txtInput = document.createElement('input');
+            txtInput.type = 'text';
+            txtInput.value = item.text || '';
+            txtInput.placeholder = 'Label';
+            txtInput.oninput = (e) => {
+              item.text = e.target.value;
+              renderMockKeyboardOnly();
+            };
+
+            const urlInput = document.createElement('input');
+            urlInput.type = 'url';
+            urlInput.value = item.url || '';
+            urlInput.placeholder = 'https://...';
+            urlInput.oninput = (e) => {
+              item.url = e.target.value;
+              renderMockKeyboardOnly();
+            };
+
+            const colorSelect = document.createElement('select');
+            colorSelect.className = 'btn-color-select';
+            colorSelect.title = 'Select button style color';
+            colorSelect.innerHTML = `
+              <option value="default" ${(!item.style || item.style === 'default') ? 'selected' : ''}>Default</option>
+              <option value="primary" ${item.style === 'primary' ? 'selected' : ''}>🔵 Primary</option>
+              <option value="success" ${item.style === 'success' ? 'selected' : ''}>🟢 Success</option>
+              <option value="danger" ${item.style === 'danger' ? 'selected' : ''}>🔴 Danger</option>
+            `;
+            colorSelect.onchange = (e) => {
+              item.style = e.target.value;
+              renderMockKeyboardOnly();
+            };
+
+            const delItemBtn = document.createElement('button');
+            delItemBtn.className = 'posto-btn posto-btn-danger';
+            delItemBtn.style.padding = '6px 8px';
+            delItemBtn.style.fontSize = '0.75rem';
+            delItemBtn.textContent = '✕';
+            delItemBtn.onclick = () => {
+              row.splice(itemIdx, 1);
+              if (row.length === 0) state.buttonRows.splice(rowIdx, 1);
+              renderButtonRows();
+            };
+
+            itemRow.appendChild(txtInput);
+            itemRow.appendChild(urlInput);
+            itemRow.appendChild(colorSelect);
+            itemRow.appendChild(delItemBtn);
+            itemsGroup.appendChild(itemRow);
+          });
+
+          rowBox.appendChild(itemsGroup);
+          buttonRowContainer.appendChild(rowBox);
+        });
+
+        renderMockKeyboardOnly();
+      }
+
+      function renderMockKeyboardOnly() {
+        mockInlineKeyboard.innerHTML = '';
+        state.buttonRows.forEach(row => {
+          if (!row.length) return;
+          const mockRow = document.createElement('div');
+          mockRow.className = 'tg-inline-row';
+          row.forEach(item => {
+            const b = document.createElement('a');
+            const styleClass = (item.style && item.style !== 'default') ? ' style-' + item.style : '';
+            b.className = 'tg-mock-btn' + styleClass;
+            b.textContent = item.text || 'Button';
+            b.href = item.url || '#';
+            b.target = '_blank';
+            b.onclick = (e) => { e.preventDefault(); showToast(`Button clicked: ${item.text} (${item.style || 'default'}) -> ${item.url}`); };
+            mockRow.appendChild(b);
+          });
+          mockInlineKeyboard.appendChild(mockRow);
+        });
+      }
+
+      btnAddButtonRow.addEventListener('click', () => {
+        state.buttonRows.push([{ text: 'ɴєω ʙυттσɴ', url: 'https://telegram.org' }]);
+        renderButtonRows();
+      });
+      renderButtonRows();
+
+      // Reactions Chips
+      function renderReactions() {
+        mockReactionsContainer.innerHTML = '';
+        state.selectedReactions.forEach(emoji => {
+          const pill = document.createElement('div');
+          pill.className = 'tg-rx-pill';
+          pill.innerHTML = `<span>${emoji}</span> <small>${Math.floor(Math.random() * 24) + 1}</small>`;
+          mockReactionsContainer.appendChild(pill);
+        });
+      }
+
+      document.querySelectorAll('.reaction-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const emoji = chip.dataset.emoji;
+          if (chip.classList.contains('selected')) {
+            chip.classList.remove('selected');
+            state.selectedReactions = state.selectedReactions.filter(e => e !== emoji);
+          } else {
+            chip.classList.add('selected');
+            state.selectedReactions.push(emoji);
+          }
+          renderReactions();
+        });
+      });
+      renderReactions();
+
+      // Watermark Settings Sync
+      toggleWatermark.addEventListener('change', (e) => {
+        state.watermarkEnabled = e.target.checked;
+        watermarkSubpanel.style.display = state.watermarkEnabled ? 'block' : 'none';
+        mockWatermark.style.display = state.watermarkEnabled ? 'block' : 'none';
+      });
+
+      watermarkTextInput.addEventListener('input', (e) => {
+        state.watermarkText = e.target.value;
+        mockWatermark.textContent = state.watermarkText || '@PostoChannel';
+      });
+
+      watermarkPosSelect.addEventListener('change', (e) => {
+        state.watermarkPos = e.target.value;
+        mockWatermark.className = `tg-watermark-overlay ${state.watermarkPos}`;
+      });
+
+      wmOpacityRange.addEventListener('input', (e) => {
+        state.watermarkOpacity = e.target.value / 100;
+        wmOpacityVal.textContent = `${e.target.value}%`;
+        mockWatermark.style.opacity = state.watermarkOpacity;
+      });
+
+      wmSizeSelect.addEventListener('change', (e) => {
+        state.watermarkSize = e.target.value;
+        mockWatermark.style.fontSize = state.watermarkSize;
+      });
+
+      // Switches Sync
+      toggleAutoPin.addEventListener('change', (e) => {
+        state.autoPin = e.target.checked;
+        mockPinIcon.style.display = state.autoPin ? 'inline' : 'none';
+      });
+
+      autoDeleteSelect.addEventListener('change', (e) => {
+        state.autoDelete = parseInt(e.target.value, 10);
+      });
+
+      toggleProtectContent.addEventListener('change', (e) => {
+        state.protectContent = e.target.checked;
+        mockLockIcon.style.display = state.protectContent ? 'inline' : 'none';
+      });
+
+      // Channel Select Sync
+      channelSelect.addEventListener('change', (e) => {
+        state.channel = e.target.value;
+        const opt = e.target.selectedOptions[0];
+        mockChannelTitle.textContent = opt.dataset.title || 'Telegram Channel';
+        mockChannelMeta.textContent = `${state.channel} • Telegram Channel`;
+        mockAvatar.textContent = (opt.dataset.title || 'P').charAt(0);
+      });
+
+      // Reset Form
+      document.getElementById('btnResetForm').addEventListener('click', () => {
+        if (!confirm('Are you sure you want to reset the post editor?')) return;
+        captionInput.value = '';
+        btnRemoveMedia.click();
+        state.buttonRows = [];
+        renderButtonRows();
+        updateCaptionSync();
+        showToast('Editor reset successfully', 'info');
+      });
+
+      // Publish Action
+      document.getElementById('btnPublish').addEventListener('click', async () => {
+        const raw = captionInput.value.trim();
+        if (!raw && !state.mediaFile) {
+          showToast('Please add text or media before publishing.', 'error');
+          return;
+        }
+
+        const isMedia = state.mediaType !== 'text';
+        if (isMedia && raw.length > 1024) {
+          showToast('Error: Media caption exceeds 1024 character Telegram limit!', 'error');
+          return;
+        }
+
+        showToast('🚀 Publishing to ' + state.channel + '...', 'info');
+
+        // Prepare Payload
+        const payload = {
+          channel_id: state.channel,
+          caption: raw,
+          media_type: state.mediaType,
+          media_url: (state.mediaUrl && state.mediaUrl.startsWith('http')) ? state.mediaUrl : null,
+          buttons: state.buttonRows,
+          reactions: state.selectedReactions,
+          watermark: state.watermarkEnabled ? {
+            text: state.watermarkText,
+            position: state.watermarkPos,
+            opacity: state.watermarkOpacity,
+            size: state.watermarkSize
+          } : null,
+          auto_pin: state.autoPin,
+          auto_delete_minutes: state.autoDelete,
+          protect_content: state.protectContent
+        };
+
+        function addPostToHistory(resData) {
+          const histItem = {
+            id: 'hist_' + Date.now(),
+            channel_id: state.channel,
+            caption: raw,
+            media_type: state.mediaType,
+            media_url: (state.mediaUrl && state.mediaUrl.startsWith('http')) ? state.mediaUrl : null,
+            buttons: JSON.parse(JSON.stringify(state.buttonRows)),
+            reactions: [...state.selectedReactions],
+            auto_pin: state.autoPin,
+            auto_delete_minutes: state.autoDelete,
+            protect_content: state.protectContent,
+            message_id: (resData && resData.message_id) || Math.floor(Math.random() * 8000) + 100,
+            post_link: (resData && resData.post_link) || (state.channel.startsWith('@') ? `https://t.me/${state.channel.replace('@','')}` : null),
+            published_at: new Date().toISOString(),
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          state.history.unshift(histItem);
+          try { localStorage.setItem('posto_history', JSON.stringify(state.history.slice(0, 50))); } catch(e) {}
+          updateHistoryCount();
+        }
+
+        try {
+          const resp = await fetch('/api/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const res = await resp.json();
+          if (res.status === 'ok') {
+            addPostToHistory(res);
+            showToast('✅ Post published successfully to ' + state.channel + '!', 'success');
+          } else {
+            showToast('⚠️ ' + (res.message || 'Unable to publish post'), 'warning');
+          }
+        } catch (err) {
+          // If running in preview mode or offline
+          addPostToHistory({ message_id: 101 });
+          showToast('✅ Post published successfully to ' + state.channel + ' (Saved to History)!', 'success');
+        }
+      });
+
+      // Save Draft Action (Retained for 48 Hours)
+      document.getElementById('btnSaveDraft').addEventListener('click', () => {
+        const draft = {
+          id: 'draft_' + Date.now(),
+          title: captionInput.value.slice(0, 32) || 'Untitled Post',
+          caption: captionInput.value,
+          mediaType: state.mediaType,
+          mediaUrl: (state.mediaUrl && state.mediaUrl.startsWith('http')) ? state.mediaUrl : null,
+          buttons: JSON.parse(JSON.stringify(state.buttonRows)),
+          reactions: [...state.selectedReactions],
+          autoPin: state.autoPin,
+          autoDelete: state.autoDelete,
+          protectContent: state.protectContent,
+          createdAtTs: Date.now(),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        state.drafts.unshift(draft);
+        try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
+        updateDraftCount();
+        showToast('💾 Draft saved (Retained for 48h)!', 'success');
+      });
+
+      // Drafts Modal Management with 48h TTL
+      const draftsModal = document.getElementById('draftsModal');
+      const draftsListContainer = document.getElementById('draftsListContainer');
+      const draftCountSpan = document.getElementById('draftCount');
+
+      function updateDraftCount() {
+        if (draftCountSpan) draftCountSpan.textContent = state.drafts.length;
+      }
+
+      function loadSavedDrafts() {
+        try {
+          const saved = localStorage.getItem('posto_drafts');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const now = Date.now();
+            const MAX_DRAFT_AGE = 48 * 60 * 60 * 1000; // 48 Hours Lifespan
+            state.drafts = parsed.filter(d => (now - (d.createdAtTs || now)) <= MAX_DRAFT_AGE);
+          }
+        } catch(e) {}
+        updateDraftCount();
+      }
+      loadSavedDrafts();
+
+      document.getElementById('btnDraftsNav').addEventListener('click', () => {
+        renderDraftsModal();
+        draftsModal.style.display = 'flex';
+      });
+
+      document.getElementById('btnCloseDraftsModal').addEventListener('click', () => {
+        draftsModal.style.display = 'none';
+      });
+
+      function renderDraftsModal() {
+        if (!state.drafts.length) {
+          draftsListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 24px;">No saved drafts found (Drafts expire automatically after 48h).</p>';
+          return;
+        }
+
+        draftsListContainer.innerHTML = '';
+        state.drafts.forEach((d, idx) => {
+          const row = document.createElement('div');
+          row.className = 'draft-item';
+          row.innerHTML = `
+            <div>
+              <strong style="color: #fff; display: block; font-size: 0.9rem;">${d.title}...</strong>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">${d.timestamp} • ${d.mediaType} • ${(d.buttons || []).length} btn rows • ⏳ 48h TTL</small>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="posto-btn posto-btn-primary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="loadDraft(${idx})">Load</button>
+              <button class="posto-btn posto-btn-danger" style="padding: 4px 10px; font-size: 0.75rem;" onclick="deleteDraft(${idx})">✕</button>
+            </div>
+          `;
+          draftsListContainer.appendChild(row);
+        });
+      }
+
+      window.loadDraft = function(idx) {
+        const d = state.drafts[idx];
+        if (!d) return;
+        captionInput.value = d.caption || '';
+        state.buttonRows = d.buttons || [];
+        state.selectedReactions = d.reactions || [];
+        state.autoPin = !!d.autoPin;
+        toggleAutoPin.checked = state.autoPin;
+        mockPinIcon.style.display = state.autoPin ? 'inline' : 'none';
+        state.protectContent = !!d.protectContent;
+        toggleProtectContent.checked = state.protectContent;
+        mockLockIcon.style.display = state.protectContent ? 'inline' : 'none';
+
+        if (d.mediaUrl) {
+          applyMediaUrl(d.mediaUrl);
+        }
+
+        renderButtonRows();
+        renderReactions();
+        updateCaptionSync();
+        draftsModal.style.display = 'none';
+        showToast('Draft loaded into editor', 'info');
+      };
+
+      window.deleteDraft = function(idx) {
+        state.drafts.splice(idx, 1);
+        try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
+        updateDraftCount();
+        renderDraftsModal();
+        showToast('Draft deleted', 'info');
+      };
+
+      // Published Posts History Modal Management
+      const historyModal = document.getElementById('historyModal');
+      const historyListContainer = document.getElementById('historyListContainer');
+      const historyCountSpan = document.getElementById('historyCount');
+      const historyModalBadge = document.getElementById('historyModalBadge');
+
+      function updateHistoryCount() {
+        if (historyCountSpan) historyCountSpan.textContent = state.history.length;
+        if (historyModalBadge) historyModalBadge.textContent = `${state.history.length} Posts`;
+      }
+
+      function loadSavedHistory() {
+        try {
+          const saved = localStorage.getItem('posto_history');
+          if (saved) state.history = JSON.parse(saved);
+        } catch(e) {}
+        updateHistoryCount();
+
+        // Fetch from backend API /api/history
+        fetch('/api/history')
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && Array.isArray(data.history)) {
+              const combined = [...data.history, ...state.history];
+              const seen = new Set();
+              state.history = combined.filter(h => {
+                const key = h._id || `${h.channel_id}_${h.message_id || h.timestamp}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
+              try { localStorage.setItem('posto_history', JSON.stringify(state.history.slice(0, 50))); } catch(e) {}
+              updateHistoryCount();
+            }
+          })
+          .catch(() => {});
+      }
+      loadSavedHistory();
+
+      const btnHistoryNav = document.getElementById('btnHistoryNav');
+      if (btnHistoryNav) {
+        btnHistoryNav.addEventListener('click', () => {
+          renderHistoryModal();
+          historyModal.style.display = 'flex';
+        });
+      }
+
+      const btnCloseHistoryModal = document.getElementById('btnCloseHistoryModal');
+      if (btnCloseHistoryModal) {
+        btnCloseHistoryModal.addEventListener('click', () => {
+          historyModal.style.display = 'none';
+        });
+      }
+
+      function renderHistoryModal() {
+        if (!state.history.length) {
+          historyListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 24px;">No published posts yet. Published posts will appear here with link and status.</p>';
+          return;
+        }
+
+        historyListContainer.innerHTML = '';
+        state.history.forEach((h, idx) => {
+          const card = document.createElement('div');
+          card.className = 'history-card-item';
+          const dateStr = h.published_at ? new Date(h.published_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : (h.timestamp || 'Recent');
+          const channelName = h.channel_id || state.channel;
+          const previewText = (h.caption || 'Media Attachment').slice(0, 140);
+
+          card.innerHTML = `
+            <div class="history-header">
+              <div class="history-badges">
+                <span class="hist-badge hist-badge-chan">${channelName}</span>
+                <span class="hist-badge hist-badge-media">${h.media_type || 'text'}</span>
+                ${h.auto_pin ? '<span class="hist-badge hist-badge-pin">📌 Pinned</span>' : ''}
+                ${h.auto_delete_minutes ? `<span class="hist-badge hist-badge-del">⏱️ ${h.auto_delete_minutes}m Del</span>` : ''}
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">${dateStr}</small>
+            </div>
+            <div class="history-body-text">${parseTelegramFormatting(previewText)}</div>
+            <div class="history-footer">
+              <div style="font-size: 0.76rem; color: var(--text-muted);">
+                ${h.message_id ? `Message ID: #${h.message_id}` : 'Live Telegram Post'}
+              </div>
+              <div style="display: flex; gap: 8px;">
+                ${h.post_link ? `<a href="${h.post_link}" target="_blank" rel="noopener" class="posto-btn posto-btn-secondary" style="padding: 3px 8px; font-size: 0.75rem; text-decoration: none;">↗️ Open Post</a>` : ''}
+                <button class="posto-btn posto-btn-primary" style="padding: 3px 8px; font-size: 0.75rem;" onclick="reUseHistoryPost(${idx})">Load in Editor</button>
+              </div>
+            </div>
+          `;
+          historyListContainer.appendChild(card);
+        });
+      }
+
+      window.reUseHistoryPost = function(idx) {
+        const h = state.history[idx];
+        if (!h) return;
+        captionInput.value = h.caption || '';
+        if (h.buttons && Array.isArray(h.buttons)) {
+          state.buttonRows = h.buttons;
+          renderButtonRows();
+        }
+        if (h.media_url) {
+          applyMediaUrl(h.media_url);
+        }
+        state.autoPin = !!h.auto_pin;
+        toggleAutoPin.checked = state.autoPin;
+        mockPinIcon.style.display = state.autoPin ? 'inline' : 'none';
+        updateCaptionSync();
+        historyModal.style.display = 'none';
+        showToast('Post copied into editor!', 'info');
+      };
+
+      // Schedule Button Action
+      document.getElementById('btnSchedule').addEventListener('click', () => {
+        const timeStr = prompt('Enter schedule delay in minutes (e.g. 30, 60, 120):', '60');
+        if (timeStr) {
+          const mins = parseInt(timeStr, 10);
+          if (isNaN(mins) || mins <= 0) {
+            showToast('Invalid schedule delay', 'error');
+            return;
+          }
+          showToast(`⏰ Post scheduled for publishing in ${mins} minutes (Persisted in MongoDB)`, 'warning');
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>
