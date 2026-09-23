@@ -1,7 +1,7 @@
 # ✈️ The Posto — Telegram Channel Post Maker Bot
 
 <p align="center">
-  <img src="start_image.jpg" alt="The Posto Banner" width="600" style="border-radius: 12px;"/>
+  <img src="https://iili.io/nA7Jv0x.jpg" alt="The Posto Banner" width="600" style="border-radius: 20px;"/>
 </p>
 
 <p align="center">
