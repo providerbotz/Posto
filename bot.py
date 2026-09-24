@@ -675,6 +675,15 @@ class TelegramBot:
         media_type = payload.get("media_type", "text")
         media_bytes = payload.get("media_bytes")
         media_url = payload.get("media_url", "").strip()
+        media_base64 = payload.get("media_base64")
+        if not media_bytes and media_base64:
+            try:
+                import base64
+                if "," in str(media_base64):
+                    media_base64 = str(media_base64).split(",", 1)[1]
+                media_bytes = base64.b64decode(media_base64)
+            except Exception as e:
+                logger.warning("Could not decode media_base64: %s", e)
         button_rows = payload.get("buttons", [])
         auto_pin = payload.get("auto_pin", False)
         auto_delete_minutes = payload.get("auto_delete_minutes", 0)
@@ -891,23 +900,54 @@ async def handle_api_auth_verify(request):
     except Exception as e:
         return aiohttp.web.json_response({"ok": False, "error": str(e)}, status=500)
 
+async def extract_user_context(request):
+    """
+    Extracts authenticated user and user_id from Bearer token, query string, or headers.
+    Supports:
+    - Authorization: Bearer <token>
+    - ?token=<token>
+    - X-Telegram-User-Id header
+    - ?user_id=<id>
+    """
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not token:
+        token = request.query.get("token", "").strip()
+
+    user = None
+    if token:
+        user = await db.get_user_by_token(token)
+
+    user_id = None
+    if user:
+        user_id = user.get("user_id")
+    else:
+        req_uid = request.headers.get("X-Telegram-User-Id") or request.query.get("user_id")
+        if req_uid:
+            try:
+                user_id = int(req_uid)
+            except (ValueError, TypeError):
+                user_id = None
+
+    return user, user_id
+
 async def handle_api_channels(request):
     """Lists connected channels for authenticated user."""
     import aiohttp.web
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    user = await db.get_user_by_token(token)
-    if not user:
-        # Return fallback demo channel for standalone browser preview
-        return aiohttp.web.json_response({
-            "ok": True,
-            "channels": [{
-                "channel_id": "@demo_channel",
-                "title": "Demo Announcements",
-                "username": "demo_channel"
-            }]
-        })
-    channels = await db.get_channels_for_user(user["user_id"])
-    return aiohttp.web.json_response({"ok": True, "channels": channels})
+    user, user_id = await extract_user_context(request)
+    if user_id:
+        channels = await db.get_channels_for_user(user_id)
+        if channels:
+            return aiohttp.web.json_response({"ok": True, "channels": channels})
+
+    # Return fallback demo channel for standalone browser preview
+    return aiohttp.web.json_response({
+        "ok": True,
+        "channels": [{
+            "channel_id": "@demo_channel",
+            "title": "Demo Announcements",
+            "username": "demo_channel"
+        }]
+    })
 
 async def handle_api_publish(request):
     """
@@ -937,10 +977,9 @@ async def handle_api_publish(request):
             }, status=400)
 
         # Extract authenticated user if available
-        token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-        user = await db.get_user_by_token(token)
-        if user:
-            payload["user_id"] = user["user_id"]
+        user, user_id = await extract_user_context(request)
+        if user_id and not payload.get("user_id"):
+            payload["user_id"] = user_id
 
         # In production mode, forward to Telegram Bot API
         res = await bot.publish_post(channel_id, payload)
@@ -955,24 +994,30 @@ async def handle_api_publish(request):
 async def handle_api_history(request):
     """GET to list published posts history for authenticated user."""
     import aiohttp.web
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    user = await db.get_user_by_token(token)
-    user_id = user["user_id"] if user else 1000
+    user, user_id = await extract_user_context(request)
+    if not user_id:
+        user_id = 1000
     history = await db.get_published_history(user_id)
     return aiohttp.web.json_response({"ok": True, "history": history})
 
 async def handle_api_drafts(request):
     """GET to list drafts, POST to save draft, DELETE to remove draft."""
     import aiohttp.web
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    user = await db.get_user_by_token(token)
-    user_id = user["user_id"] if user else 1000
+    user, user_id = await extract_user_context(request)
+    if not user_id:
+        user_id = 1000
 
     if request.method == "GET":
         drafts = await db.get_drafts_for_user(user_id)
         return aiohttp.web.json_response({"ok": True, "drafts": drafts})
     elif request.method == "POST":
         data = await request.json()
+        payload_uid = data.get("user_id")
+        if payload_uid:
+            try:
+                user_id = int(payload_uid)
+            except (ValueError, TypeError):
+                pass
         data["user_id"] = user_id
         draft_id = await db.save_draft(data)
         return aiohttp.web.json_response({"ok": True, "draft_id": draft_id})

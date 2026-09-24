@@ -1137,7 +1137,7 @@
             <span id="headerUserName">Telegram User</span>
             <span class="user-dot" title="Connected"></span>
           </div>
-          <span class="user-info-id" id="headerUserId">ID: 86742154</span>
+          <span class="user-info-id" id="headerUserId">ID: Connected</span>
         </div>
       </div>
     </div>
@@ -1518,6 +1518,14 @@ Start typing in the caption box to see your Telegram channel post preview update
         
         const displayId = u.id || u.user_id;
         if (idEl) idEl.textContent = displayId ? `ID: ${displayId}` : 'ID: Connected';
+        if (displayId) {
+          state.userId = Number(displayId);
+          try {
+            if (typeof loadMongoChannels === 'function') loadMongoChannels();
+            if (typeof loadSavedDrafts === 'function') loadSavedDrafts();
+            if (typeof loadSavedHistory === 'function') loadSavedHistory();
+          } catch(e) {}
+        }
 
         if (u.photo_url && avatarEl && fallbackEl) {
           avatarEl.src = u.photo_url;
@@ -1531,33 +1539,14 @@ Start typing in the caption box to see your Telegram channel post preview update
         }
       }
 
-      // Telegram WebApp Integration
-      const tg = window.Telegram?.WebApp;
-      if (tg) {
-        tg.expand();
-        tg.enableClosingConfirmation?.();
-        if (tg.initDataUnsafe?.user) {
-          applyUserData(tg.initDataUnsafe.user);
-        }
-      }
-
       // Check token in URL parameters from bot /start or /web
       const urlParams = new URLSearchParams(window.location.search);
       const tokenParam = urlParams.get('token');
-      if (tokenParam) {
-        fetch('/api/auth/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: tokenParam })
-        }).then(r => r.json()).then(data => {
-          if (data.ok && data.user) {
-            applyUserData(data.user);
-          }
-        }).catch(() => {});
-      }
 
       // App State
       const state = {
+        token: tokenParam || null,
+        userId: null,
         mediaType: 'text',
         mediaFile: null,
         mediaUrl: null,
@@ -2079,6 +2068,7 @@ Start typing in the caption box to see your Telegram channel post preview update
           caption: raw,
           media_type: state.mediaType,
           media_url: (state.mediaUrl && state.mediaUrl.startsWith('http')) ? state.mediaUrl : null,
+          media_base64: (state.mediaUrl && state.mediaUrl.startsWith('data:')) ? state.mediaUrl : null,
           buttons: state.buttonRows,
           reactions: state.selectedReactions,
           watermark: state.watermarkEnabled ? {
@@ -2089,7 +2079,8 @@ Start typing in the caption box to see your Telegram channel post preview update
           } : null,
           auto_pin: state.autoPin,
           auto_delete_minutes: state.autoDelete,
-          protect_content: state.protectContent
+          protect_content: state.protectContent,
+          user_id: state.userId || null
         };
 
         function addPostToHistory(resData) {
@@ -2115,9 +2106,13 @@ Start typing in the caption box to see your Telegram channel post preview update
         }
 
         try {
+          const reqHeaders = { 'Content-Type': 'application/json' };
+          if (state.token) reqHeaders['Authorization'] = 'Bearer ' + state.token;
+          if (state.userId) reqHeaders['X-Telegram-User-Id'] = String(state.userId);
+
           const resp = await fetch('/api/publish', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: reqHeaders,
             body: JSON.stringify(payload)
           });
           const res = await resp.json();
@@ -2156,9 +2151,13 @@ Start typing in the caption box to see your Telegram channel post preview update
         updateDraftCount();
 
         // Direct async sync to MongoDB
+        const draftHeaders = { 'Content-Type': 'application/json' };
+        if (state.token) draftHeaders['Authorization'] = 'Bearer ' + state.token;
+        if (state.userId) draftHeaders['X-Telegram-User-Id'] = String(state.userId);
+
         fetch('/api/drafts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: draftHeaders,
           body: JSON.stringify({
             draft_id: draft.id,
             title: draft.title,
@@ -2169,7 +2168,8 @@ Start typing in the caption box to see your Telegram channel post preview update
             reactions: draft.reactions,
             auto_pin: draft.autoPin,
             auto_delete_minutes: draft.autoDelete,
-            protect_content: draft.protectContent
+            protect_content: draft.protectContent,
+            user_id: state.userId || null
           })
         }).then(r => r.json()).then(res => {
           if (res && res.status === 'ok') {
@@ -2205,7 +2205,15 @@ Start typing in the caption box to see your Telegram channel post preview update
         updateDraftCount();
 
         // 2. Fetch directly from MongoDB backend API
-        fetch('/api/drafts')
+        const draftQuery = new URLSearchParams();
+        if (state.token) draftQuery.set('token', state.token);
+        if (state.userId) draftQuery.set('user_id', String(state.userId));
+        const draftUrl = '/api/drafts' + (draftQuery.toString() ? '?' + draftQuery.toString() : '');
+        const draftGetHeaders = {};
+        if (state.token) draftGetHeaders['Authorization'] = 'Bearer ' + state.token;
+        if (state.userId) draftGetHeaders['X-Telegram-User-Id'] = String(state.userId);
+
+        fetch(draftUrl, { headers: draftGetHeaders })
           .then(r => r.json())
           .then(data => {
             if (data && data.ok && Array.isArray(data.drafts) && data.drafts.length > 0) {
@@ -2297,7 +2305,11 @@ Start typing in the caption box to see your Telegram channel post preview update
       window.deleteDraft = function(idx) {
         const d = state.drafts[idx];
         if (d && d.id) {
-          fetch(`/api/drafts/${d.id}`, { method: 'DELETE' }).catch(() => {});
+          const delHeaders = {};
+          if (state.token) delHeaders['Authorization'] = 'Bearer ' + state.token;
+          if (state.userId) delHeaders['X-Telegram-User-Id'] = String(state.userId);
+          const delUrl = `/api/drafts/${d.id}` + (state.userId ? `?user_id=${state.userId}` : '');
+          fetch(delUrl, { method: 'DELETE', headers: delHeaders }).catch(() => {});
         }
         state.drafts.splice(idx, 1);
         try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
@@ -2325,7 +2337,15 @@ Start typing in the caption box to see your Telegram channel post preview update
         updateHistoryCount();
 
         // Fetch from backend API /api/history
-        fetch('/api/history')
+        const histQuery = new URLSearchParams();
+        if (state.token) histQuery.set('token', state.token);
+        if (state.userId) histQuery.set('user_id', String(state.userId));
+        const histUrl = '/api/history' + (histQuery.toString() ? '?' + histQuery.toString() : '');
+        const histHeaders = {};
+        if (state.token) histHeaders['Authorization'] = 'Bearer ' + state.token;
+        if (state.userId) histHeaders['X-Telegram-User-Id'] = String(state.userId);
+
+        fetch(histUrl, { headers: histHeaders })
           .then(r => r.json())
           .then(data => {
             if (data && data.ok && Array.isArray(data.history)) {
@@ -2462,9 +2482,18 @@ Start typing in the caption box to see your Telegram channel post preview update
       checkDbStatus();
       setInterval(checkDbStatus, 20000);
 
-      // Load Connected Channels from MongoDB
-      function loadMongoChannels() {
-        fetch('/api/channels')
+      // Load Connected Channels from MongoDB (persisted in DB by /addchannel)
+      function loadMongoChannels(showFeedback = false) {
+        const queryParams = new URLSearchParams();
+        if (state.token) queryParams.set('token', state.token);
+        if (state.userId) queryParams.set('user_id', String(state.userId));
+        const url = '/api/channels' + (queryParams.toString() ? '?' + queryParams.toString() : '');
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+        if (state.userId) headers['X-Telegram-User-Id'] = String(state.userId);
+
+        fetch(url, { headers })
           .then(r => r.json())
           .then(data => {
             if (data && data.ok && Array.isArray(data.channels) && data.channels.length > 0) {
@@ -2473,15 +2502,61 @@ Start typing in the caption box to see your Telegram channel post preview update
                 const opt = document.createElement('option');
                 opt.value = ch.username ? `@${ch.username.replace('@','')}` : String(ch.channel_id);
                 opt.textContent = `${ch.title || 'Channel'} (${opt.value})`;
+                opt.dataset.title = ch.title || 'Channel';
+                opt.dataset.username = ch.username || '';
                 channelSelect.appendChild(opt);
               });
               state.channel = channelSelect.value;
               updateMockChannelPreview();
+              const countEl = document.getElementById('channelCountLabel');
+              if (countEl) countEl.textContent = `${data.channels.length} ᴄσɴɴєᴄтєᴅ`;
+              if (showFeedback) showToast(`Loaded ${data.channels.length} channel(s) from MongoDB!`, 'success');
+            } else if (showFeedback) {
+              showToast('No custom channels yet. Add Posto with /addchannel in bot.', 'info');
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            if (showFeedback) showToast('Could not fetch channels from database', 'warning');
+          });
       }
       loadMongoChannels();
+
+      // Refresh Channels Button Click
+      const btnRefresh = document.getElementById('btnRefreshChannels');
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => {
+          btnRefresh.style.transform = 'rotate(180deg)';
+          btnRefresh.style.transition = 'transform 0.4s ease';
+          setTimeout(() => { btnRefresh.style.transform = 'none'; }, 400);
+          loadMongoChannels(true);
+        });
+      }
+
+      // Telegram WebApp Integration & Startup Auth Verification
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        try {
+          tg.ready?.();
+          tg.expand?.();
+          tg.enableClosingConfirmation?.();
+        } catch(e) {}
+        if (tg.initDataUnsafe?.user) {
+          applyUserData(tg.initDataUnsafe.user);
+        }
+      }
+
+      // Check token in URL parameters from bot /start or /web
+      if (tokenParam) {
+        fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenParam })
+        }).then(r => r.json()).then(data => {
+          if (data && data.ok && data.user) {
+            applyUserData(data.user);
+          }
+        }).catch(() => {});
+      }
 
     })();
   </script>
