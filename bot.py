@@ -438,6 +438,7 @@ class TelegramBot:
     def __init__(self, token: str):
         self.token = token
         self.username = "PostoPostBot"
+        self.bot_id = None
         self.session = None
 
     async def start(self):
@@ -449,7 +450,8 @@ class TelegramBot:
                 me = await self.request("getMe")
                 if me and me.get("ok"):
                     self.username = me["result"].get("username", "PostoPostBot")
-                    logger.info("Bot started successfully as @%s", self.username)
+                    self.bot_id = me["result"].get("id")
+                    logger.info("Bot started successfully as @%s (ID: %s)", self.username, self.bot_id)
             except Exception as e:
                 logger.warning("Could not fetch getMe: %s", e)
 
@@ -571,8 +573,8 @@ class TelegramBot:
         )
         keyboard = self.make_start_keyboard(user_token)
 
-        # Check if start_image exists
-        if START_IMAGE_PATH.exists() and START_IMAGE_PATH.is_file():
+        # Check if start_image exists and is not empty
+        if START_IMAGE_PATH.exists() and START_IMAGE_PATH.is_file() and START_IMAGE_PATH.stat().st_size > 0:
             try:
                 with open(START_IMAGE_PATH, "rb") as f:
                     img_data = f.read()
@@ -585,7 +587,22 @@ class TelegramBot:
                 if res.get("ok"):
                     return res
             except Exception as e:
-                logger.warning("Failed sending start image: %s", e)
+                logger.warning("Failed sending local start image: %s", e)
+
+        # Fallback to hosted banner URL if local file is missing or empty
+        banner_url = "https://iili.io/nA7Jv0x.jpg"
+        try:
+            res = await self.request("sendPhoto", data={
+                "chat_id": chat_id,
+                "photo": banner_url,
+                "caption": caption,
+                "parse_mode": "HTML",
+                "reply_markup": json.dumps(keyboard)
+            })
+            if res.get("ok"):
+                return res
+        except Exception as e:
+            logger.warning("Failed sending start image via hosted URL: %s", e)
 
         # Fallback to text message
         return await self.request("sendMessage", {
@@ -608,7 +625,17 @@ class TelegramBot:
         chat_info = chat_res["result"]
 
         # Check bot's member status in channel
-        member_res = await self.request("getChatMember", {"chat_id": channel_id, "user_id": (await self.request("getMe")).get("result", {}).get("id")})
+        bot_user_id = self.bot_id
+        if not bot_user_id:
+            me_res = await self.request("getMe")
+            if me_res.get("ok"):
+                bot_user_id = me_res["result"].get("id")
+                self.bot_id = bot_user_id
+
+        if not bot_user_id:
+            return {"valid": False, "error": "Bot ID could not be resolved. Please verify BOT_TOKEN."}
+
+        member_res = await self.request("getChatMember", {"chat_id": channel_id, "user_id": bot_user_id})
         if not member_res.get("ok"):
             return {"valid": False, "error": "Bot is not a member of the channel."}
 
