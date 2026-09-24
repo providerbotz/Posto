@@ -483,23 +483,39 @@ class TelegramBot:
     # Keyboard Builders
     def make_start_keyboard(self, user_token: str) -> Dict[str, Any]:
         """
-        Builds the exact Row 1/2/3 keyboard layout required by Section 7:
-        Row 1: ➕ ᴧᴅᴅ ᴍє тσ ʏσυʀ ᴄʜᴧɴɴєʟ (Channel Admin flow)
-        Row 2: υѕᴧɢє | ᴧʙσυт
-        Row 3: ᴄʀєᴧтє ᴩσѕт
+        Builds the exact Row 1/2/3 keyboard layout with colored styles:
+        Row 1: 🔵 ➕ ᴧᴅᴅ ᴍє тσ ʏσυʀ ᴄʜᴧɴɴєʟ (Primary Accent Blue)
+        Row 2: 📘 υѕᴧɢє | ℹ️ ᴧʙσυт (Primary & Info)
+        Row 3: 🟢 ᴄʀєᴧтє ᴩσѕт (Success Vibrant Green)
         """
         add_url = f"https://t.me/{self.username}?startchannel=true&admin=post_messages+edit_messages+delete_messages+pin_messages"
         return {
             "inline_keyboard": [
                 [
-                    {"text": BTN_ADD_CHANNEL, "url": add_url}
+                    {
+                        "text": f"🔵 {BTN_ADD_CHANNEL}",
+                        "url": add_url,
+                        "style": "primary"
+                    }
                 ],
                 [
-                    {"text": BTN_USAGE, "callback_data": "usage"},
-                    {"text": BTN_ABOUT, "callback_data": "about"}
+                    {
+                        "text": f"📘 {BTN_USAGE}",
+                        "callback_data": "usage",
+                        "style": "primary"
+                    },
+                    {
+                        "text": f"ℹ️ {BTN_ABOUT}",
+                        "callback_data": "about",
+                        "style": "primary"
+                    }
                 ],
                 [
-                    {"text": BTN_CREATE_POST, "callback_data": "create_post_menu"}
+                    {
+                        "text": f"🟢 {BTN_CREATE_POST}",
+                        "callback_data": "create_post_menu",
+                        "style": "success"
+                    }
                 ]
             ]
         }
@@ -507,24 +523,40 @@ class TelegramBot:
     def make_create_menu_keyboard(self, user_token: str) -> Dict[str, Any]:
         """
         Menu shown when user taps 'ᴄʀєᴧтє ᴩσѕт':
-        Buttons:
-        - Web Editor
-        - My Channels
-        - Drafts
-        - Back
+        Buttons with colored styles:
+        - 🌐 Web Editor (Primary)
+        - 📢 My Channels (Primary)
+        - 📂 Drafts (Primary)
+        - 🔴 Back (Danger)
         """
         web_url = f"{BASE_URL}/?token={user_token}"
         return {
             "inline_keyboard": [
                 [
-                    {"text": BTN_WEB_EDITOR, "web_app": {"url": web_url}}
+                    {
+                        "text": f"🌐 {BTN_WEB_EDITOR}",
+                        "web_app": {"url": web_url},
+                        "style": "primary"
+                    }
                 ],
                 [
-                    {"text": BTN_MY_CHANNELS, "callback_data": "my_channels"},
-                    {"text": BTN_DRAFTS, "callback_data": "my_drafts"}
+                    {
+                        "text": f"📢 {BTN_MY_CHANNELS}",
+                        "callback_data": "my_channels",
+                        "style": "primary"
+                    },
+                    {
+                        "text": f"📂 {BTN_DRAFTS}",
+                        "callback_data": "my_drafts",
+                        "style": "primary"
+                    }
                 ],
                 [
-                    {"text": BTN_BACK, "callback_data": "back_home"}
+                    {
+                        "text": f"🔴 {BTN_BACK}",
+                        "callback_data": "back_home",
+                        "style": "danger"
+                    }
                 ]
             ]
         }
@@ -1086,7 +1118,7 @@ async def telegram_polling_loop():
                             f"4. <b>{to_small_caps('Auto-Pin & Auto-Delete')}:</b>\n"
                             f"• {to_small_caps('Enable automatic pinning or schedule messages to self-destruct.')}"
                         )
-                        kb = {"inline_keyboard": [[{"text": BTN_BACK, "callback_data": "back_home"}]]}
+                        kb = {"inline_keyboard": [[{"text": f"🔴 {BTN_BACK}", "callback_data": "back_home", "style": "danger"}]]}
                         if msg_id:
                             await bot.request("editMessageText", {
                                 "chat_id": chat_id,
@@ -1107,7 +1139,7 @@ async def telegram_polling_loop():
                             f"• {to_small_caps('Image Watermark & Auto-Delete Scheduler')}\n"
                             f"• {to_small_caps('Deployable on Render, Railway, VPS, Termux, Koyeb')}"
                         )
-                        kb = {"inline_keyboard": [[{"text": BTN_BACK, "callback_data": "back_home"}]]}
+                        kb = {"inline_keyboard": [[{"text": f"🔴 {BTN_BACK}", "callback_data": "back_home", "style": "danger"}]]}
                         if msg_id:
                             await bot.request("editMessageText", {
                                 "chat_id": chat_id,
@@ -1128,8 +1160,8 @@ async def telegram_polling_loop():
                         add_url = f"https://t.me/{bot.username}?startchannel=true&admin=post_messages+edit_messages+delete_messages+pin_messages"
                         kb = {
                             "inline_keyboard": [
-                                [{"text": "➕ ᴧᴅᴅ ɴєω ᴄʜᴧɴɴєʟ", "url": add_url}],
-                                [{"text": BTN_BACK, "callback_data": "create_post_menu"}]
+                                [{"text": "🔵 ➕ ᴧᴅᴅ ɴєω ᴄʜᴧɴɴєʟ", "url": add_url, "style": "primary"}],
+                                [{"text": f"🔴 {BTN_BACK}", "callback_data": "create_post_menu", "style": "danger"}]
                             ]
                         }
                         if msg_id:
@@ -1148,7 +1180,7 @@ async def telegram_polling_loop():
                         else:
                             d_list = "\n".join([f"• 📂 <b>{d.get('title', 'Draft')}</b> ({d.get('updated_at', '')[:10]})" for d in drafts[:5]])
                             body = f"<b>{to_small_caps('Your Recent Drafts:')}</b>\n\n{d_list}"
-                        kb = {"inline_keyboard": [[{"text": BTN_BACK, "callback_data": "create_post_menu"}]]}
+                        kb = {"inline_keyboard": [[{"text": f"🔴 {BTN_BACK}", "callback_data": "create_post_menu", "style": "danger"}]]}
                         if msg_id:
                             await bot.request("editMessageText", {
                                 "chat_id": chat_id,

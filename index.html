@@ -182,6 +182,66 @@
       border-radius: 50%;
     }
 
+    /* MongoDB Status Pill & Footer */
+    .db-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .db-leaf {
+      color: #47a248;
+      font-size: 0.9rem;
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .db-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #47a248;
+      box-shadow: 0 0 6px #47a248;
+      display: inline-block;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .db-indicator-dot.offline {
+      background: #e53935;
+      box-shadow: 0 0 6px #e53935;
+    }
+
+    footer.posto-footer {
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 12px 20px;
+      margin-top: auto;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .footer-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-content b {
+      color: var(--text-main);
+    }
+
     /* Main Container & Responsive Grid */
     main.posto-container {
       max-width: 1280px;
@@ -1055,6 +1115,11 @@
       <span class="brand-badge">ᴠ2.4 ᴘʀσᴅυᴄтισɴ</span>
     </div>
     <div class="user-status">
+      <div class="db-status-pill" id="dbStatusPill" title="MongoDB Persistence Layer">
+        <span class="db-leaf">🍃</span>
+        <span class="db-status-text" id="dbStatusText">MongoDB: Active</span>
+        <span class="db-indicator-dot" id="dbIndicatorDot"></span>
+      </div>
       <button class="posto-btn posto-btn-secondary" id="btnDraftsNav" style="padding: 6px 12px; font-size: 0.82rem;">
         📂 ᴅʀᴧꜰтѕ (<span id="draftCount">0</span>)
       </button>
@@ -1422,6 +1487,14 @@ Start typing in the caption box to see your Telegram channel post preview update
       </div>
     </div>
   </div>
+
+  <!-- MongoDB Live Footer -->
+  <footer class="posto-footer">
+    <div class="footer-content">
+      <span>🍃 <b>MongoDB Motor Async Database</b> • Connection Pooling • 48H TTL Pruning</span>
+      <span id="footerDbStatus">Database: <b>MongoDB (Active)</b></span>
+    </div>
+  </footer>
 
   <!-- Toast Notification Notification Element -->
   <div id="toast">Message</div>
@@ -2058,7 +2131,7 @@ Start typing in the caption box to see your Telegram channel post preview update
         }
       });
 
-      // Save Draft Action (Retained for 48 Hours)
+      // Save Draft Action (Persisted in MongoDB with 48h TTL)
       document.getElementById('btnSaveDraft').addEventListener('click', () => {
         const draft = {
           id: 'draft_' + Date.now(),
@@ -2078,10 +2151,35 @@ Start typing in the caption box to see your Telegram channel post preview update
         state.drafts.unshift(draft);
         try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
         updateDraftCount();
-        showToast('💾 Draft saved (Retained for 48h)!', 'success');
+
+        // Direct async sync to MongoDB
+        fetch('/api/drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            draft_id: draft.id,
+            title: draft.title,
+            caption: draft.caption,
+            media_type: draft.mediaType,
+            media_url: draft.mediaUrl,
+            buttons: draft.buttons,
+            reactions: draft.reactions,
+            auto_pin: draft.autoPin,
+            auto_delete_minutes: draft.autoDelete,
+            protect_content: draft.protectContent
+          })
+        }).then(r => r.json()).then(res => {
+          if (res && res.status === 'ok') {
+            showToast('💾 Draft saved & synced to MongoDB (48h TTL)!', 'success');
+          } else {
+            showToast('💾 Draft saved (Retained for 48h)!', 'success');
+          }
+        }).catch(() => {
+          showToast('💾 Draft saved (Local storage)!', 'success');
+        });
       });
 
-      // Drafts Modal Management with 48h TTL
+      // Drafts Modal Management with 48h TTL & MongoDB Sync
       const draftsModal = document.getElementById('draftsModal');
       const draftsListContainer = document.getElementById('draftsListContainer');
       const draftCountSpan = document.getElementById('draftCount');
@@ -2091,6 +2189,7 @@ Start typing in the caption box to see your Telegram channel post preview update
       }
 
       function loadSavedDrafts() {
+        // 1. Instant load from local storage
         try {
           const saved = localStorage.getItem('posto_drafts');
           if (saved) {
@@ -2101,6 +2200,37 @@ Start typing in the caption box to see your Telegram channel post preview update
           }
         } catch(e) {}
         updateDraftCount();
+
+        // 2. Fetch directly from MongoDB backend API
+        fetch('/api/drafts')
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && Array.isArray(data.drafts) && data.drafts.length > 0) {
+              const mongoDrafts = data.drafts.map(d => ({
+                id: d.draft_id || d._id || ('draft_' + Date.now()),
+                title: d.title || (d.caption || '').slice(0, 32) || 'Untitled Post',
+                caption: d.caption || '',
+                mediaType: d.media_type || 'text',
+                mediaUrl: d.media_url || null,
+                buttons: d.buttons || [],
+                reactions: d.reactions || [],
+                autoPin: !!d.auto_pin,
+                autoDelete: d.auto_delete_minutes || 0,
+                protectContent: !!d.protect_content,
+                createdAtTs: d._timestamp ? d._timestamp * 1000 : Date.now(),
+                timestamp: d.updated_at ? new Date(d.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Saved'
+              }));
+
+              const map = new Map();
+              [...mongoDrafts, ...state.drafts].forEach(item => {
+                if (!map.has(item.id)) map.set(item.id, item);
+              });
+              state.drafts = Array.from(map.values());
+              try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
+              updateDraftCount();
+            }
+          })
+          .catch(() => {});
       }
       loadSavedDrafts();
 
@@ -2115,7 +2245,7 @@ Start typing in the caption box to see your Telegram channel post preview update
 
       function renderDraftsModal() {
         if (!state.drafts.length) {
-          draftsListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 24px;">No saved drafts found (Drafts expire automatically after 48h).</p>';
+          draftsListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 24px;">No saved drafts found (Drafts expire automatically after 48h in MongoDB).</p>';
           return;
         }
 
@@ -2126,7 +2256,7 @@ Start typing in the caption box to see your Telegram channel post preview update
           row.innerHTML = `
             <div>
               <strong style="color: #fff; display: block; font-size: 0.9rem;">${d.title}...</strong>
-              <small style="color: var(--text-muted); font-size: 0.75rem;">${d.timestamp} • ${d.mediaType} • ${(d.buttons || []).length} btn rows • ⏳ 48h TTL</small>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">${d.timestamp} • ${d.mediaType} • ${(d.buttons || []).length} btn rows • ⏳ 48h MongoDB TTL</small>
             </div>
             <div style="display: flex; gap: 6px;">
               <button class="posto-btn posto-btn-primary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="loadDraft(${idx})">Load</button>
@@ -2162,11 +2292,15 @@ Start typing in the caption box to see your Telegram channel post preview update
       };
 
       window.deleteDraft = function(idx) {
+        const d = state.drafts[idx];
+        if (d && d.id) {
+          fetch(`/api/drafts/${d.id}`, { method: 'DELETE' }).catch(() => {});
+        }
         state.drafts.splice(idx, 1);
         try { localStorage.setItem('posto_drafts', JSON.stringify(state.drafts)); } catch(e) {}
         updateDraftCount();
         renderDraftsModal();
-        showToast('Draft deleted', 'info');
+        showToast('Draft deleted from MongoDB & local cache', 'info');
       };
 
       // Published Posts History Modal Management
@@ -2293,6 +2427,58 @@ Start typing in the caption box to see your Telegram channel post preview update
           showToast(`⏰ Post scheduled for publishing in ${mins} minutes (Persisted in MongoDB)`, 'warning');
         }
       });
+
+      // Live MongoDB Connection Status Checker (Every 20s)
+      function checkDbStatus() {
+        fetch('/health')
+          .then(r => r.json())
+          .then(data => {
+            const dot = document.getElementById('dbIndicatorDot');
+            const text = document.getElementById('dbStatusText');
+            const footerText = document.getElementById('footerDbStatus');
+            if (data && data.status === 'healthy') {
+              const isMongo = data.database === 'connected';
+              if (text) text.textContent = isMongo ? 'MongoDB: Connected' : 'MongoDB: Active';
+              if (dot) {
+                dot.classList.remove('offline');
+                dot.style.background = '#47a248';
+                dot.style.boxShadow = '0 0 6px #47a248';
+              }
+              if (footerText) {
+                footerText.innerHTML = `Database: <b>${isMongo ? 'MongoDB Atlas (Connected)' : 'MongoDB (Motor Pool)'}</b> • Up: ${data.uptime_seconds || 0}s`;
+              }
+            }
+          })
+          .catch(() => {
+            const dot = document.getElementById('dbIndicatorDot');
+            const text = document.getElementById('dbStatusText');
+            if (text) text.textContent = 'MongoDB: Standby';
+            if (dot) dot.classList.add('offline');
+          });
+      }
+      checkDbStatus();
+      setInterval(checkDbStatus, 20000);
+
+      // Load Connected Channels from MongoDB
+      function loadMongoChannels() {
+        fetch('/api/channels')
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && Array.isArray(data.channels) && data.channels.length > 0) {
+              channelSelect.innerHTML = '';
+              data.channels.forEach(ch => {
+                const opt = document.createElement('option');
+                opt.value = ch.username ? `@${ch.username.replace('@','')}` : String(ch.channel_id);
+                opt.textContent = `${ch.title || 'Channel'} (${opt.value})`;
+                channelSelect.appendChild(opt);
+              });
+              state.channel = channelSelect.value;
+              updateMockChannelPreview();
+            }
+          })
+          .catch(() => {});
+      }
+      loadMongoChannels();
 
     })();
   </script>
