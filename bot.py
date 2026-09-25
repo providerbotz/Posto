@@ -437,7 +437,7 @@ class TelegramBot:
     """
     def __init__(self, token: str):
         self.token = token
-        self.username = "PostoPostBot"
+        self.username = "THEPOSTBOT"
         self.bot_id = None
         self.session = None
 
@@ -449,7 +449,7 @@ class TelegramBot:
             try:
                 me = await self.request("getMe")
                 if me and me.get("ok"):
-                    self.username = me["result"].get("username", "PostoPostBot")
+                    self.username = me["result"].get("username", "THEPOSTOBOT")
                     self.bot_id = me["result"].get("id")
                     logger.info("Bot started successfully as @%s (ID: %s)", self.username, self.bot_id)
             except Exception as e:
