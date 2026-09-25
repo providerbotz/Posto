@@ -1,8 +1,15 @@
-# ✈️ The Posto — Telegram Channel Post Maker Bot
-
 <p align="center">
-  <img src="https://iili.io/nA7Jv0x.jpg" alt="The Posto Banner" width="600" style="border-radius: 20px;"/>
+  <a href="https://github.com/YOUR-USERNAME/YOUR-REPO">
+    <img
+      src="https://iili.io/nA7Jv0x.jpg"
+      alt="The Posto Banner"
+      width="600"
+      style="border: 3px solid #5865F2; border-radius: 20px;"
+    />
+  </a>
 </p>
+
+<h1 align="center">✈️ The Posto — Telegram Channel Post Maker Bot</h1>
 
 <p align="center">
   <b>Create. Format. Publish.</b><br>
@@ -85,8 +92,8 @@ Add these in your `.env` or Render **Environment** tab:
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-username/the-posto.git
-cd the-posto
+git clone https://github.com/your-username/posto.git
+cd posto
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -147,6 +154,14 @@ await message.reply("Choose an option:", reply_markup=buttons)
 
 ---
 
+<h2 align="center">📊 Project Status</h2>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Active-138808?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Version-1.0.0-FF9933?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Maintained-Yes-138808?style=for-the-badge"/>
+</p>
+
 ## 📱 Bot Commands
 
 - `/start` — Welcome message with Web App button & quick guide.
@@ -156,6 +171,22 @@ await message.reply("Choose an option:", reply_markup=buttons)
 
 ---
 
+## 📜 License
+
+This project is licensed under the MIT License.
+See the `LICENSE` file for details.
+
 <p align="center">
   <b>The Posto</b> • Built for Telegram Creators with ❤️
+</p>
+
+<h2 align="center">❤️ Community</h2>
+
+<p align="center">
+  If you find <b>The Posto</b> useful, consider ⭐ starring the repository.
+  <br><br>
+  <p align="center">
+  <a href="https://t.me/providerborz">
+    <img src="https://img.shields.io/badge/🇮🇳%20JOIN%20OUR%20TELEGRAM-@providerborz-FF9933?style=for-the-badge&logo=telegram&logoColor=white&labelColor=138808" alt="Join Telegram"/>
+  </a>
 </p>
